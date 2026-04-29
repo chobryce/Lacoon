@@ -28,7 +28,7 @@ def sse(data: dict):
 @app.post("/scan")
 async def scan(file: UploadFile = File(...)):
     async def event_stream():
-        suffix = os.path.basename(file.filename)
+        suffix = file.filename
 
         yield sse({
             "type": "status",
@@ -36,7 +36,7 @@ async def scan(file: UploadFile = File(...)):
             "message": f"Received {file.filename}"
         })
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix="_" + suffix) as tmp:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             content = await file.read()
             tmp.write(content)
             tmp_path = tmp.name
