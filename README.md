@@ -1,2 +1,2 @@
-# lacooon
-Lacooon is a lightweight supply chain security scanner built in Python that analyzes dependency manifests to identify malicious packages, typosquatting risks, and known vulnerabilities using OSV and GitHub Security Advisories.
+# Lacooon Malicious File/Dependency FLagger and Detector
+Lacooon is a Python-based Open-Source supply chain security scanner that evaluates dependency manifests and source files to detect malicious packages, typosquatting patterns, and known vulnerabilities by leveraging OSV and GitHub Security Advisory data.
