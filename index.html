@@ -779,15 +779,12 @@ const API_BASE = 'https://lacooon-api.onrender.com';
 
   function acceptFile(f) {
     if (!f) return;
-    const name = f.name.toLowerCase();
-    if (!ALLOWED.has(name)) {
-      appendStatus(`Unsupported file: ${f.name}`, 'error');
+  
+    if (f.size > 5 * 1024 * 1024) {
+      appendStatus('File exceeds 5 MB limit.', 'error');
       return;
     }
-    if (f.size > 2 * 1024 * 1024) {
-      appendStatus('File exceeds 2 MB limit.', 'error');
-      return;
-    }
+  
     selectedFile = f;
     fileNameLabel.textContent = f.name;
     fileSizeLabel.textContent = fmtBytes(f.size);
