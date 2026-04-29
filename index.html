@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lacooon — supply chain scanner</title>
+  <meta name="description" content="Drop your dependency manifest. We'll tell you what's malicious." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset & base ──────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0a0a0b;
+      --surface:     #111114;
+      --surface2:    #17171c;
+      --border:      #1e1e26;
+      --border2:     #2a2a35;
+      --text:        #e8e8f0;
+      --text-dim:    #6b6b80;
+      --text-faint:  #38384a;
+      --accent:      #5b6af0;
+      --accent-glow: rgba(91,106,240,.18);
+      --critical:    #f04a4a;
+      --high:        #f0824a;
+      --medium:      #f0c74a;
+      --low:         #4af0b8;
+      --info:        #4ab4f0;
+      --clean:       #4af09a;
+      --mono:        'DM Mono', monospace;
+      --sans:        'Syne', sans-serif;
+      --radius:      6px;
+      --transition:  160ms cubic-bezier(.4,0,.2,1);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Grain overlay ─────────────────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+      opacity: .028;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── Layout ────────────────────────────────────────────────────────────── */
+    .wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── Header ────────────────────────────────────────────────────────────── */
+    header {
+      padding: 48px 0 0;
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+    }
+
+    .logo {
+      font-family: var(--sans);
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+
+    .logo span {
+      color: var(--accent);
+    }
+
+    .tagline {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: .04em;
+    }
+
+    /* ── Hero ──────────────────────────────────────────────────────────────── */
+    .hero {
+      padding: 72px 0 0;
+    }
+
+    .hero h1 {
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -1.5px;
+      color: var(--text);
+      max-width: 540px;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      color: var(--text-dim);
+    }
+
+    .hero p {
+      margin-top: 18px;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.7;
+      max-width: 480px;
+    }
+
+    .hero-badges {
+      margin-top: 20px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .06em;
+      padding: 4px 10px;
+      border: 1px solid var(--border2);
+      border-radius: 3px;
+      color: var(--text-dim);
+      background: var(--surface);
+    }
+
+    /* ── Drop zone ─────────────────────────────────────────────────────────── */
+    .dropzone-wrap {
+      margin-top: 52px;
+    }
+
+    .dropzone-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .12em;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    #dropzone {
+      position: relative;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 48px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+      outline: none;
+    }
+
+    #dropzone:hover,
+    #dropzone.drag-over {
+      border-color: var(--accent);
+      background: var(--surface2);
+      box-shadow: 0 0 0 1px var(--accent), 0 0 32px var(--accent-glow);
+    }
+
+    #dropzone.drag-over {
+      box-shadow: 0 0 0 1px var(--accent), 0 0 56px var(--accent-glow);
+    }
+
+    #file-input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-icon {
+      width: 36px;
+      height: 36px;
+      margin: 0 auto 16px;
+      opacity: .35;
+    }
+
+    .drop-primary {
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .drop-secondary {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 6px;
+    }
+
+    .drop-formats {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      margin-top: 16px;
+      letter-spacing: .04em;
+    }
+
+    /* File selected state */
+    .file-selected-row {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      margin-top: 12px;
+    }
+
+    .file-selected-row.visible { display: flex; }
+
+    .file-name {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .file-size {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+
+    .btn-clear {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+      transition: color var(--transition);
+      flex-shrink: 0;
+    }
+
+    .btn-clear:hover { color: var(--critical); }
+
+    /* ── Scan button ───────────────────────────────────────────────────────── */
+    .scan-row {
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    #btn-scan {
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .02em;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 11px 28px;
+      cursor: pointer;
+      transition: opacity var(--transition), box-shadow var(--transition), transform var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #btn-scan::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,.08) 0%, transparent 100%);
+      pointer-events: none;
+    }
+
+    #btn-scan:hover:not(:disabled) {
+      box-shadow: 0 0 24px rgba(91,106,240,.45);
+      transform: translateY(-1px);
+    }
+
+    #btn-scan:disabled {
+      opacity: .38;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .scan-note {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      line-height: 1.5;
+    }
+
+    /* ── Results panel ─────────────────────────────────────────────────────── */
+    #results-panel {
+      margin-top: 40px;
+      display: none;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    #results-panel.visible { display: flex; }
+
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0;
+    }
+
+    .results-title {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    .results-status {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Pulse dot */
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      flex-shrink: 0;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    .pulse-dot.stopped { animation: none; background: var(--text-faint); }
+    .pulse-dot.clean   { animation: none; background: var(--clean); }
+    .pulse-dot.threat  { animation: none; background: var(--critical); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: .4; transform: scale(.7); }
+    }
+
+    /* Stream box */
+    #stream-box {
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.65;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 var(--radius) var(--radius);
+      padding: 20px;
+      min-height: 200px;
+      max-height: 540px;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    /* ── Stream entries ─────────────────────────────────────────────────────── */
+    .stream-line {
+      display: flex;
+      gap: 10px;
+      padding: 3px 0;
+      opacity: 0;
+      transform: translateY(4px);
+      animation: line-in 200ms forwards;
+    }
+
+    @keyframes line-in {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .stream-ts {
+      color: var(--text-faint);
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    .stream-tag {
+      font-size: 9px;
+      letter-spacing: .08em;
+      padding: 1px 5px;
+      border-radius: 2px;
+      flex-shrink: 0;
+      align-self: center;
+    }
+
+    .tag-status  { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border2); }
+    .tag-finding { background: rgba(240,74,74,.12); color: var(--critical); border: 1px solid rgba(240,74,74,.25); }
+    .tag-clean   { background: rgba(74,240,154,.1); color: var(--clean); border: 1px solid rgba(74,240,154,.2); }
+    .tag-error   { background: rgba(240,74,74,.1); color: var(--critical); border: 1px solid rgba(240,74,74,.2); }
+
+    .stream-text {
+      color: var(--text);
+      word-break: break-word;
+      flex: 1;
+    }
+
+    .stream-dim  { color: var(--text-dim); }
+    .stream-faint{ color: var(--text-faint); }
+
+    /* ── Finding card ──────────────────────────────────────────────────────── */
+    .finding-card {
+      margin: 12px 0;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(6px);
+      animation: line-in 220ms forwards;
+    }
+
+    .finding-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--surface2);
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color var(--transition);
+    }
+
+    .finding-header:hover { border-bottom-color: var(--border2); }
+
+    .finding-sev {
+      font-size: 9px;
+      letter-spacing: .1em;
+      font-weight: 500;
+      padding: 2px 7px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .sev-CRITICAL { background: rgba(240,74,74,.18); color: var(--critical); border: 1px solid rgba(240,74,74,.3); }
+    .sev-HIGH     { background: rgba(240,130,74,.15); color: var(--high); border: 1px solid rgba(240,130,74,.28); }
+    .sev-MEDIUM   { background: rgba(240,199,74,.12); color: var(--medium); border: 1px solid rgba(240,199,74,.22); }
+    .sev-LOW      { background: rgba(74,240,184,.1); color: var(--low); border: 1px solid rgba(74,240,184,.2); }
+
+    .finding-pkg {
+      color: var(--text);
+      font-weight: 500;
+      flex: 1;
+      font-size: 13px;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .finding-version {
+      color: var(--text-faint);
+      font-size: 11px;
+    }
+
+    .finding-count {
+      font-size: 10px;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+
+    .chevron {
+      flex-shrink: 0;
+      transition: transform var(--transition);
+      color: var(--text-faint);
+    }
+
+    .finding-card.expanded .chevron { transform: rotate(180deg); }
+
+    .finding-body {
+      display: none;
+      padding: 0;
+    }
+
+    .finding-card.expanded .finding-body { display: block; }
+
+    .finding-row {
+      padding: 10px 14px;
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 8px;
+    }
+
+    .finding-row-label {
+      font-size: 10px;
+      color: var(--text-faint);
+      letter-spacing: .06em;
+      padding-top: 1px;
+    }
+
+    .finding-row-value {
+      font-size: 11px;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .finding-rule-id {
+      display: inline-block;
+      font-size: 9px;
+      padding: 1px 5px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 2px;
+      color: var(--text-dim);
+      margin-right: 6px;
+      margin-bottom: 4px;
+    }
+
+    .advisory-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 11px;
+      word-break: break-all;
+      transition: opacity var(--transition);
+    }
+
+    .advisory-link:hover { opacity: .7; }
+
+    /* ── Summary banner ────────────────────────────────────────────────────── */
+    #summary-banner {
+      display: none;
+      padding: 16px 20px;
+      border-radius: var(--radius);
+      border: 1px solid;
+      margin-top: 20px;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.6;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 300ms, transform 300ms;
+    }
+
+    #summary-banner.visible {
+      display: block;
+    }
+
+    #summary-banner.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    #summary-banner.clean {
+      background: rgba(74,240,154,.06);
+      border-color: rgba(74,240,154,.22);
+      color: var(--clean);
+    }
+
+    #summary-banner.threats {
+      background: rgba(240,74,74,.06);
+      border-color: rgba(240,74,74,.22);
+      color: var(--text);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    .summary-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .summary-stat-val {
+      font-size: 22px;
+      font-family: var(--sans);
+      font-weight: 700;
+    }
+
+    .summary-stat-label {
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    /* ── Footer ────────────────────────────────────────────────────────────── */
+    footer {
+      padding: 60px 0 40px;
+      border-top: 1px solid var(--border);
+      margin-top: 80px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-left {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-faint);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .footer-links a {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color var(--transition);
+    }
+
+    .footer-links a:hover { color: var(--text); }
+
+    /* ── Scrollbar ─────────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+    /* ── Responsive ────────────────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 28px; letter-spacing: -.8px; }
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+      footer { flex-direction: column; gap: 16px; align-items: flex-start; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">lac<span>ooo</span>n</div>
+    <div class="tagline">// supply chain scanner</div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>Drop your manifest.<br><em>We find what's malicious.</em></h1>
+    <p>Checks npm and PyPI packages against OSV malware advisories, GitHub Security Advisories, typosquatting databases, and 47 source-code heuristic rules. Nothing leaves your machine except the file you submit.</p>
+    <div class="hero-badges">
+      <span class="badge">OSV · MAL-*</span>
+      <span class="badge">GHSA malware</span>
+      <span class="badge">typosquatting</span>
+      <span class="badge">source IOCs</span>
+      <span class="badge">metadata heuristics</span>
+    </div>
+  </section>
+
+  <!-- Drop zone -->
+  <section class="dropzone-wrap">
+    <div class="dropzone-label">manifest file</div>
+
+    <div id="dropzone" tabindex="0" role="button" aria-label="Upload manifest file">
+      <input type="file" id="file-input" accept=".json,.toml,.txt"
+             aria-label="Choose manifest file" />
+
+      <svg class="drop-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 28h24M18 8v16M18 8l-6 6M18 8l6 6" stroke="currentColor"
+              stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+
+      <div class="drop-primary">Drop file here or click to browse</div>
+      <div class="drop-secondary">No account required. File is not stored.</div>
+      <div class="drop-formats">
+        package.json &nbsp;·&nbsp; package-lock.json &nbsp;·&nbsp; pyproject.toml &nbsp;·&nbsp; requirements.txt
+      </div>
+    </div>
+
+    <div class="file-selected-row" id="file-row">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <rect x="2" y="1" width="10" height="12" rx="1.5" stroke="#6b6b80" stroke-width="1.2"/>
+        <path d="M4 5h6M4 7.5h6M4 10h4" stroke="#6b6b80" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span class="file-name" id="file-name-label">—</span>
+      <span class="file-size" id="file-size-label"></span>
+      <button class="btn-clear" id="btn-clear" title="Remove file" aria-label="Remove file">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="scan-row">
+      <button id="btn-scan" disabled>Scan package manifest</button>
+      <div class="scan-note">
+        Files processed server-side.<br>Temp files deleted immediately after scan.
+      </div>
+    </div>
+  </section>
+
+  <!-- Results -->
+  <section id="results-panel">
+    <div class="results-header">
+      <span class="results-title">scan output</span>
+      <span class="results-status">
+        <span class="pulse-dot" id="pulse-dot"></span>
+        <span id="status-text">initializing</span>
+      </span>
+    </div>
+
+    <div id="stream-box" aria-live="polite" aria-label="Scan results stream"></div>
+
+    <div id="summary-banner">
+      <div id="summary-message"></div>
+      <div class="summary-grid" id="summary-grid"></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-left">lacooon.com &nbsp;—&nbsp; open-source security tooling</div>
+    <nav class="footer-links">
+      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://osv.dev" target="_blank" rel="noopener">OSV</a>
+      <a href="https://github.com/advisories" target="_blank" rel="noopener">GHSA</a>
+    </nav>
+  </footer>
+
+</div><!-- /wrap -->
+
+<script>
+  'use strict';
+
+  // ── Config ────────────────────────────────────────────────────────────────
+  const API_BASE = window.location.hostname === 'localhost'
+    ? 'http://localhost:8000'
+    : '';   // same-origin in production
+
+  // ── DOM refs ──────────────────────────────────────────────────────────────
+  const dropzone       = document.getElementById('dropzone');
+  const fileInput      = document.getElementById('file-input');
+  const fileRow        = document.getElementById('file-row');
+  const fileNameLabel  = document.getElementById('file-name-label');
+  const fileSizeLabel  = document.getElementById('file-size-label');
+  const btnClear       = document.getElementById('btn-clear');
+  const btnScan        = document.getElementById('btn-scan');
+  const resultsPanel   = document.getElementById('results-panel');
+  const streamBox      = document.getElementById('stream-box');
+  const pulseDot       = document.getElementById('pulse-dot');
+  const statusText     = document.getElementById('status-text');
+  const summaryBanner  = document.getElementById('summary-banner');
+  const summaryMessage = document.getElementById('summary-message');
+  const summaryGrid    = document.getElementById('summary-grid');
+
+  let selectedFile = null;
+  let activeScan   = null;   // AbortController
+
+  // ── File helpers ──────────────────────────────────────────────────────────
+  function fmtBytes(n) {
+    if (n < 1024)       return n + ' B';
+    if (n < 1048576)    return (n / 1024).toFixed(1) + ' KB';
+    return (n / 1048576).toFixed(1) + ' MB';
+  }
+
+  const ALLOWED = new Set([
+    'package.json', 'package-lock.json', 'pyproject.toml', 'requirements.txt',
+  ]);
+
+  function acceptFile(f) {
+    if (!f) return;
+    const name = f.name.toLowerCase();
+    if (!ALLOWED.has(name)) {
+      appendStatus(`Unsupported file: ${f.name}`, 'error');
+      return;
+    }
+    if (f.size > 2 * 1024 * 1024) {
+      appendStatus('File exceeds 2 MB limit.', 'error');
+      return;
+    }
+    selectedFile = f;
+    fileNameLabel.textContent = f.name;
+    fileSizeLabel.textContent = fmtBytes(f.size);
+    fileRow.classList.add('visible');
+    btnScan.disabled = false;
+  }
+
+  function clearFile() {
+    selectedFile = null;
+    fileInput.value = '';
+    fileRow.classList.remove('visible');
+    btnScan.disabled = true;
+  }
+
+  // ── Drag & drop ───────────────────────────────────────────────────────────
+  dropzone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropzone.classList.add('drag-over');
+  });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('drag-over');
+    const f = e.dataTransfer?.files?.[0];
+    if (f) acceptFile(f);
+  });
+  dropzone.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') fileInput.click();
+  });
+
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files?.[0];
+    if (f) acceptFile(f);
+  });
+
+  btnClear.addEventListener('click', clearFile);
+
+  // ── Stream box helpers ────────────────────────────────────────────────────
+  function now() {
+    return new Date().toLocaleTimeString('en-US', { hour12: false });
+  }
+
+  function appendRaw(html) {
+    streamBox.insertAdjacentHTML('beforeend', html);
+    streamBox.scrollTop = streamBox.scrollHeight;
+  }
+
+  function appendStatus(msg, type = 'status') {
+    const tagClass = type === 'error' ? 'tag-error' : 'tag-status';
+    const tag      = type === 'error' ? 'ERR' : 'SYS';
+    appendRaw(`
+      <div class="stream-line">
+        <span class="stream-ts stream-faint">${now()}</span>
+        <span class="stream-tag ${tagClass}">${tag}</span>
+        <span class="stream-text stream-dim">${escHtml(msg)}</span>
+      </div>`);
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function appendFinding(pkg) {
+    const sev  = pkg.highest_severity || 'LOW';
+    const name = pkg.package || '?';
+    const ver  = pkg.version  || '';
+    const cnt  = (pkg.findings || []).length;
+
+    const rows = (pkg.findings || []).map(f => {
+      const advisoryHTML = (pkg.advisory_urls || []).length > 0
+        ? (pkg.advisory_urls || []).slice(0, 3).map(u =>
+            `<a class="advisory-link" href="${escHtml(u)}" target="_blank" rel="noopener">${escHtml(u)}</a><br>`
+          ).join('')
+        : '';
+
+      return `
+        <div class="finding-row">
+          <div class="finding-row-label">RULE</div>
+          <div class="finding-row-value">
+            <span class="finding-rule-id">${escHtml(f.rule_id)}</span>${escHtml(f.rule_name)}
+          </div>
+        </div>
+        <div class="finding-row">
+          <div class="finding-row-label">DETAIL</div>
+          <div class="finding-row-value">${escHtml(f.description)}</div>
+        </div>
+        <div class="finding-row">
+          <div class="finding-row-label">EVIDENCE</div>
+          <div class="finding-row-value stream-dim">${escHtml((f.evidence || '').slice(0, 200))}</div>
+        </div>
+        ${advisoryHTML ? `<div class="finding-row">
+          <div class="finding-row-label">ADVISORY</div>
+          <div class="finding-row-value">${advisoryHTML}</div>
+        </div>` : ''}`;
+    }).join('');
+
+    const id = 'fc-' + Math.random().toString(36).slice(2);
+
+    appendRaw(`
+      <div class="finding-card" id="${id}">
+        <div class="finding-header" onclick="toggleCard('${id}')">
+          <span class="finding-sev sev-${sev}">${sev}</span>
+          <span class="finding-pkg">${escHtml(name)}</span>
+          <span class="finding-version">${escHtml(ver)}</span>
+          <span class="finding-count">${cnt} finding${cnt !== 1 ? 's' : ''}</span>
+          <svg class="chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="finding-body">${rows}</div>
+      </div>`);
+
+    streamBox.scrollTop = streamBox.scrollHeight;
+  }
+
+  window.toggleCard = function(id) {
+    document.getElementById(id)?.classList.toggle('expanded');
+  };
+
+  // ── Scan ──────────────────────────────────────────────────────────────────
+  btnScan.addEventListener('click', () => {
+    if (!selectedFile) return;
+    startScan(selectedFile);
+  });
+
+  async function startScan(file) {
+    // Abort any previous
+    if (activeScan) {
+      activeScan.abort();
+      activeScan = null;
+    }
+
+    // Reset UI
+    streamBox.innerHTML = '';
+    summaryBanner.className = 'visible';
+    summaryBanner.classList.remove('show');
+    summaryMessage.textContent = '';
+    summaryGrid.innerHTML = '';
+    resultsPanel.classList.add('visible');
+    pulseDot.className = 'pulse-dot';
+    statusText.textContent = 'scanning';
+    btnScan.disabled = true;
+
+    appendStatus(`File: ${file.name} (${fmtBytes(file.size)})`);
+    appendStatus('Connecting to scanner...');
+
+    const body = new FormData();
+    body.append('file', file, file.name);
+
+    const controller = new AbortController();
+    activeScan = controller;
+
+    let totalPackages = 0;
+    let flaggedPackages = 0;
+    let totalFindings = 0;
+    let isClean = null;
+
+    try {
+      const resp = await fetch(`${API_BASE}/scan`, {
+        method: 'POST',
+        body,
+        signal: controller.signal,
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+        appendStatus(err.detail || 'Server error', 'error');
+        setStatus('stopped', 'error');
+        return;
+      }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop();
+
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith('data:')) continue;
+          let payload;
+          try { payload = JSON.parse(line.slice(5).trim()); }
+          catch { continue; }
+
+          const type = payload.type;
+
+          if (type === 'status') {
+            appendStatus(payload.message);
+            statusText.textContent = payload.phase || 'scanning';
+
+          } else if (type === 'finding') {
+            const p = payload.package;
+            appendFinding(p);
+            flaggedPackages++;
+            totalFindings += (p.findings || []).length;
+
+          } else if (type === 'summary') {
+            totalPackages  = payload.total || 0;
+            flaggedPackages= payload.flagged || 0;
+            totalFindings  = payload.total_findings || 0;
+            isClean        = payload.clean;
+
+          } else if (type === 'error') {
+            appendStatus(payload.message, 'error');
+            setStatus('stopped', 'error');
+
+          } else if (type === 'done') {
+            // Render summary
+            const clean = isClean !== false && flaggedPackages === 0;
+            showSummary(totalPackages, flaggedPackages, totalFindings, clean);
+            setStatus(clean ? 'clean' : 'threat', clean ? 'clean' : 'threats found');
+            if (clean) {
+              appendRaw(`<div class="stream-line">
+                <span class="stream-ts stream-faint">${now()}</span>
+                <span class="stream-tag tag-clean">OK</span>
+                <span class="stream-text stream-dim">No malicious packages detected.</span>
+              </div>`);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        appendStatus('Connection lost: ' + e.message, 'error');
+        setStatus('stopped', 'disconnected');
+      }
+    } finally {
+      activeScan = null;
+      btnScan.disabled = false;
+    }
+  }
+
+  function setStatus(dotClass, text) {
+    pulseDot.className = 'pulse-dot ' + dotClass;
+    statusText.textContent = text;
+  }
+
+  function showSummary(total, flagged, findings, clean) {
+    summaryBanner.classList.remove('clean', 'threats');
+    summaryBanner.classList.add(clean ? 'clean' : 'threats');
+    summaryMessage.textContent = clean
+      ? `All ${total} packages checked — nothing malicious detected.`
+      : `${flagged} of ${total} packages flagged across ${findings} finding(s).`;
+
+    summaryGrid.innerHTML = [
+      { val: total,    label: 'packages scanned' },
+      { val: flagged,  label: 'flagged' },
+      { val: findings, label: 'total findings' },
+    ].map(s => `
+      <div class="summary-stat">
+        <div class="summary-stat-val">${s.val}</div>
+        <div class="summary-stat-label">${s.label}</div>
+      </div>`).join('');
+
+    requestAnimationFrame(() => {
+      summaryBanner.classList.add('show');
+    });
+  }
+</script>
+</body>
+</html>
