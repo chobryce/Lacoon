@@ -1231,11 +1231,15 @@ class OSVClient:
 class GHSAClient:
     """
     Client for GitHub Security Advisory malware database.
-    Uses the public web interface since the GraphQL API requires auth.
+    Uses GraphQL API (with token) or public REST API (without token).
+    Falls back to HTML scraping only if both API paths fail.
     """
     ADVISORY_URL_TEMPLATE = (
         "https://github.com/advisories?query=type%3Amalware+ecosystem%3A{eco}"
     )
+    GRAPHQL_URL  = "https://api.github.com/graphql"
+    ADVISORY_REST_URL = "https://api.github.com/advisories"
+
     _cache: Dict[str, List[Dict]] = {}
 
     def __init__(self, session: "requests.Session"):
@@ -1244,8 +1248,169 @@ class GHSAClient:
     def _fetch_advisories(self, ecosystem: str) -> List[Dict]:
         if ecosystem in self._cache:
             return self._cache[ecosystem]
+
+        token = os.environ.get("GITHUB_TOKEN")
+        advisories: List[Dict] = []
+
+        if token:
+            advisories = self._fetch_via_graphql(ecosystem, token)
+        else:
+            log.info("No GITHUB_TOKEN found — using unauthenticated REST API (rate-limited to 60 req/hr).")
+            advisories = self._fetch_via_rest(ecosystem)
+
+        # Last resort: original HTML scraper (fragile but better than nothing)
+        if not advisories:
+            log.warning("API fetch returned no results — falling back to HTML scraper.")
+            advisories = self._fetch_via_scrape(ecosystem)
+
+        self._cache[ecosystem] = advisories
+        return advisories
+
+    def _fetch_via_graphql(self, ecosystem: str, token: str) -> List[Dict]:
+        """Stable, paginated GraphQL API — requires GITHUB_TOKEN env var."""
+        eco_map = {"npm": "NPM", "pip": "PIP"}
+        gh_ecosystem = eco_map.get(ecosystem, ecosystem.upper())
+
+        advisories: List[Dict] = []
+        cursor = None
+
+        query = """
+        query($cursor: String, $ecosystem: SecurityAdvisoryEcosystem) {
+          securityAdvisories(
+            first: 100
+            after: $cursor
+            classification: MALWARE
+            ecosystem: $ecosystem
+          ) {
+            pageInfo { hasNextPage endCursor }
+            nodes {
+              ghsaId
+              summary
+              severity
+              vulnerabilities(first: 10) {
+                nodes { package { name ecosystem } }
+              }
+              references { url }
+            }
+          }
+        }
+        """
+
+        headers = {
+            "Authorization": f"bearer {token}",
+            "Content-Type": "application/json",
+        }
+
+        while True:
+            try:
+                resp = self.session.post(
+                    self.GRAPHQL_URL,
+                    json={"query": query, "variables": {"cursor": cursor, "ecosystem": gh_ecosystem}},
+                    headers=headers,
+                    timeout=20,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+            except Exception as e:
+                log.warning(f"GHSA GraphQL fetch failed: {e}")
+                break
+
+            if "errors" in data:
+                log.warning(f"GHSA GraphQL errors: {data['errors']}")
+                break
+
+            nodes = data.get("data", {}).get("securityAdvisories", {})
+            for node in nodes.get("nodes", []):
+                pkg_names: Set[str] = set()
+                for vuln in node.get("vulnerabilities", {}).get("nodes", []):
+                    pkg = vuln.get("package", {})
+                    if pkg.get("name"):
+                        pkg_names.add(pkg["name"].lower())
+
+                refs = [r["url"] for r in node.get("references", []) if r.get("url")]
+                ghsa_id = node["ghsaId"]
+                ghsa_url = next(
+                    (u for u in refs if "github.com/advisories" in u),
+                    f"https://github.com/advisories/{ghsa_id}",
+                )
+
+                advisories.append({
+                    "id":          ghsa_id,
+                    "title":       node.get("summary", ""),
+                    "description": node.get("summary", ""),
+                    "severity":    node.get("severity", "UNKNOWN"),
+                    "packages":    pkg_names,
+                    "url":         ghsa_url,
+                })
+
+            page_info = nodes.get("pageInfo", {})
+            if not page_info.get("hasNextPage"):
+                break
+            cursor = page_info.get("endCursor")
+
+        log.info(f"GHSA GraphQL: fetched {len(advisories)} advisories for {ecosystem}")
+        return advisories
+
+    def _fetch_via_rest(self, ecosystem: str) -> List[Dict]:
+        """Public REST API — no token needed, but rate-limited to 60 req/hr."""
+        advisories: List[Dict] = []
+        page = 1
+
+        while True:
+            try:
+                resp = self.session.get(
+                    self.ADVISORY_REST_URL,
+                    params={
+                        "type":      "malware",
+                        "ecosystem": ecosystem.lower(),
+                        "per_page":  100,
+                        "page":      page,
+                    },
+                    timeout=20,
+                )
+                if resp.status_code in (403, 429):
+                    log.warning(
+                        "GHSA REST API rate-limited — partial results only. "
+                        "Set GITHUB_TOKEN env var to avoid this."
+                    )
+                    break
+                resp.raise_for_status()
+                batch = resp.json()
+            except Exception as e:
+                log.warning(f"GHSA REST fetch failed (page {page}): {e}")
+                break
+
+            if not batch:
+                break
+
+            for adv in batch:
+                pkg_names: Set[str] = set()
+                for vuln in adv.get("vulnerabilities", []):
+                    pkg = vuln.get("package", {})
+                    if pkg.get("name"):
+                        pkg_names.add(pkg["name"].lower())
+
+                ghsa_id = adv.get("ghsa_id", "")
+                advisories.append({
+                    "id":          ghsa_id,
+                    "title":       adv.get("summary", ""),
+                    "description": adv.get("description", ""),
+                    "severity":    adv.get("severity", "UNKNOWN").upper(),
+                    "packages":    pkg_names,
+                    "url":         adv.get("html_url", f"https://github.com/advisories/{ghsa_id}"),
+                })
+
+            if len(batch) < 100:
+                break
+            page += 1
+
+        log.info(f"GHSA REST: fetched {len(advisories)} advisories for {ecosystem}")
+        return advisories
+
+    def _fetch_via_scrape(self, ecosystem: str) -> List[Dict]:
+        """Original HTML scraper — fragile fallback only."""
         if not HAS_BS4:
-            log.warning("beautifulsoup4 not installed — skipping GHSA scrape. pip install beautifulsoup4")
+            log.warning("beautifulsoup4 not installed — skipping GHSA scrape.")
             return []
 
         url = self.ADVISORY_URL_TEMPLATE.format(eco=ecosystem)
@@ -1265,24 +1430,22 @@ class GHSAClient:
                 sev_span = card.find("span", class_="Label")
                 severity = sev_span.get_text(strip=True) if sev_span else "Unknown"
 
-                # Extract package names from title + description using conservative patterns
                 pkg_names: Set[str] = set()
                 for m in re.finditer(r'[`"\']([a-zA-Z0-9_@/.-]{2,64})[`"\']',
                                      title + " " + desc):
                     pkg_names.add(m.group(1).lower())
 
                 advisories.append({
-                    "id": adv_id,
-                    "title": title,
+                    "id":          adv_id,
+                    "title":       title,
                     "description": desc,
-                    "severity": severity,
-                    "packages": pkg_names,
-                    "url": f"https://github.com/advisories/{adv_id}",
+                    "severity":    severity,
+                    "packages":    pkg_names,
+                    "url":         f"https://github.com/advisories/{adv_id}",
                 })
         except Exception as e:
             log.warning(f"GHSA scrape failed for {ecosystem}: {e}")
 
-        self._cache[ecosystem] = advisories
         return advisories
 
     def query(self, pkg: Package) -> List[RuleMatch]:
@@ -1293,11 +1456,9 @@ class GHSAClient:
 
         for adv in advisories:
             matched = False
-            # Primary: exact name in extracted package set
             if name_lower in adv["packages"]:
                 matched = True
 
-            # Secondary: strict word boundary in title/description
             if not matched:
                 text = (adv["title"] + " " + adv["description"]).lower()
                 pat = r'(?:^|[\s`"\',;()\[\]])' + re.escape(name_lower) + r'(?=[\s`"\',;()\[\]]|$)'
