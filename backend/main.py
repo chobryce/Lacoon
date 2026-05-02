@@ -626,7 +626,55 @@ async def scan(request: Request, file: UploadFile = File(...)):
 
                     yield sse({"type": "done"})
                     return
+                if kind == "manifest":
+                    yield sse({
+                        "type": "status",
+                        "phase": "parse",
+                        "message": "Detected dependency manifest. Parsing packages..."
+                    })
 
+                    manifest_path = normalize_manifest_path(filename, tmp_dir, data)
+                    packages = ManifestParser.from_file(manifest_path)
+
+                    if len(packages) > 250:
+                        yield sse({"type": "error", "message": "Too many dependencies (max 250)."})
+                        return
+
+                    yield sse({
+                        "type": "status",
+                        "phase": "scan",
+                        "message": f"Loaded {len(packages)} package(s). Running supply-chain scan..."
+                    })
+
+                    scanner = LaocoonScanner(deep=False)
+
+                    flagged = 0
+                    total_findings = 0
+
+                    for pkg in packages:
+                        yield sse({
+                            "type": "status",
+                            "phase": "scan",
+                            "message": f"Checking {pkg.name}@{pkg.version}..."
+                        })
+
+                        result = scanner.scan_package(pkg)
+
+                        if result.is_malicious:
+                            flagged += 1
+                            total_findings += len(result.matches)
+                            yield sse({"type": "finding", "package": result.to_dict()})
+
+                    yield sse({
+                        "type": "summary",
+                        "total": len(packages),
+                        "flagged": flagged,
+                        "total_findings": total_findings,
+                        "clean": flagged == 0,
+                    })
+
+                    yield sse({"type": "done"})
+                    return
             except Exception:
                 yield sse({
                     "type": "error",
