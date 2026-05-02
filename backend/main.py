@@ -620,9 +620,17 @@ async def scan(request: Request, file: UploadFile = File(...)):
 
                     result = scan_source_file(tmp_path, filename, data)
 
-                    if result["finding_count"] > 0:
-                        yield sse({"type": "finding", "package": result})
-
+                    yield sse({
+                        "type": "finding",
+                        "package": {
+                            "name": result["name"],
+                            "version": result["version"],
+                            "ecosystem": result["ecosystem"],
+                            "severity": result["highest_severity"] or "NONE",
+                            "findings": result["matches"],
+                            "finding_count": result["finding_count"]
+                        }
+                    })
                     yield sse({
                         "type": "summary",
                         "total": 1,
