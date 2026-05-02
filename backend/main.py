@@ -21,6 +21,8 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from fastapi import Request
 
+app = FastAPI(title="lacooon API", version="2.0.0")
+
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 
@@ -28,8 +30,7 @@ app.state.limiter = limiter
 @limiter.limit("5/minute")
 async def scan(request: Request, file: UploadFile = File(...)):
 
-
-app = FastAPI(title="lacooon API", version="2.0.0")
+SCAN_SEMAPHORE = asyncio.Semaphore(2)
 
 app.add_middleware(
     CORSMiddleware,
@@ -579,9 +580,6 @@ def scan_source_file(path: str, filename: str, data: bytes) -> Dict[str, Any]:
         "file_hash_sha256": sha256_bytes(data),
     }
 
-
-@app.post("/scan")
-async def scan(file: UploadFile = File(...)):
     async def event_stream():
         async with SCAN_SEMAPHORE:
             tmp_dir = tempfile.mkdtemp(prefix="lacooon_")
@@ -608,8 +606,8 @@ async def scan(file: UploadFile = File(...)):
                     "message": f"Received {filename} ({len(data)} bytes)"
                 })
 
-            content = decode_text(data)
-            kind = detect_file_kind(filename, content, data)
+                content = decode_text(data)
+                kind = detect_file_kind(filename, content, data)
 
             if kind == "binary":
                 yield sse({
