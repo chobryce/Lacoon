@@ -23,15 +23,15 @@ from fastapi import Request
 
 app = FastAPI(title="lacooon API", version="2.0.0")
 
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi import _rate_limit_exceeded_handler
 
-app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
 
 SCAN_SEMAPHORE = asyncio.Semaphore(2)
 
