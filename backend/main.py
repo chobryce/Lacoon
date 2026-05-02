@@ -6,6 +6,7 @@ import re
 import shutil
 import tempfile
 import time
+import asyncio
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -15,15 +16,30 @@ from fastapi.responses import StreamingResponse
 
 from laocoon import LaocoonScanner, ManifestParser, SOURCE_CODE_RULES, Severity
 
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from fastapi import Request
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+
+@app.post("/scan")
+@limiter.limit("5/minute")
+async def scan(request: Request, file: UploadFile = File(...)):
+
 
 app = FastAPI(title="lacooon API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://chobryce.github.io",
+        "https://chobryce.github.io/Laocoon",
+    ],
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 
@@ -567,29 +583,30 @@ def scan_source_file(path: str, filename: str, data: bytes) -> Dict[str, Any]:
 @app.post("/scan")
 async def scan(file: UploadFile = File(...)):
     async def event_stream():
-        tmp_dir = tempfile.mkdtemp(prefix="lacooon_")
+        async with SCAN_SEMAPHORE:
+            tmp_dir = tempfile.mkdtemp(prefix="lacooon_")
 
-        try:
-            filename = safe_filename(file.filename)
-            data = await file.read()
+            try:
+                filename = safe_filename(file.filename)
+                data = await file.read()
 
-            if not data:
-                yield sse({"type": "error", "message": "Uploaded file is empty."})
-                return
+                if not data:
+                    yield sse({"type": "error", "message": "Uploaded file is empty."})
+                    return
 
-            if len(data) > MAX_FILE_BYTES:
-                yield sse({"type": "error", "message": "File exceeds 2 MB scan limit."})
-                return
+                if len(data) > MAX_FILE_BYTES:
+                    yield sse({"type": "error", "message": "File exceeds scan limit."})
+                    return
 
-            tmp_path = os.path.join(tmp_dir, filename)
-            with open(tmp_path, "wb") as f:
-                f.write(data)
+                tmp_path = os.path.join(tmp_dir, filename)
+                with open(tmp_path, "wb") as f:
+                    f.write(data)
 
-            yield sse({
-                "type": "status",
-                "phase": "upload",
-                "message": f"Received {filename} ({len(data)} bytes)"
-            })
+                yield sse({
+                    "type": "status",
+                    "phase": "upload",
+                    "message": f"Received {filename} ({len(data)} bytes)"
+                })
 
             content = decode_text(data)
             kind = detect_file_kind(filename, content, data)
@@ -678,7 +695,7 @@ async def scan(file: UploadFile = File(...)):
         except Exception as e:
             yield sse({
                 "type": "error",
-                "message": str(e)
+                "message": "Scan failed. The file may be malformed or unsupported."
             })
 
         finally:
