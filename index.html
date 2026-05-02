@@ -537,20 +537,25 @@ let retryFile     = null;   // file queued for auto-retry
 // Fire immediately on page load. The /ping endpoint should return {ok:true}.
 // This wakes the Render free-tier instance while the user reads the page,
 // so the 50s cold-start hits NOW instead of after they click Scan.
-(async function warmup() {
-  try {
-    const r = await fetch(`${API_BASE}/ping`, { method: 'GET' });
-    if (r.ok) {
-      serverDot.className = 'server-dot ready';
-      serverStatusEl.textContent = 'server ready';
-    } else {
-      throw new Error('non-ok');
-    }
-  } catch {
-    serverDot.className = 'server-dot error';
-    serverStatusEl.textContent = 'server unreachable';
+async function warmup(retries = 5) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const r = await fetch(`${API_BASE}/ping`);
+      if (r.ok) {
+        serverDot.className = 'server-dot ready';
+        serverStatusEl.textContent = 'server ready';
+        return;
+      }
+    } catch {}
+
+    await new Promise(r => setTimeout(r, 3000));
   }
-})();
+
+  serverDot.className = 'server-dot error';
+  serverStatusEl.textContent = 'server unreachable';
+}
+
+warmup();
 
 // ── File helpers ──────────────────────────────────────────────────────────
 function fmtBytes(n) {
