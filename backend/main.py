@@ -584,7 +584,7 @@ def scan_source_file(path: str, filename: str, data: bytes) -> dict:
     else:
         final_sev = base_sev
         
-        return {
+    return {
             "name": filename,
             "version": "source",
             "ecosystem": "source_code",
