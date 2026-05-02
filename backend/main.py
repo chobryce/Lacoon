@@ -561,16 +561,38 @@ def scan_source_file(path: str, filename: str, data: bytes) -> dict:
     findings += ast_python_findings(content, filename)
 
     findings = deduplicate_findings(findings)
-
-    return {
-        "name": filename,
-        "version": "source",
-        "ecosystem": "source_code",
-        "is_malicious": len(findings) > 0,
-        "finding_count": len(findings),
-        "matches": findings,
-        "highest_severity": highest_severity(findings),
-    }
+    base_sev = highest_severity(findings) or "NONE"
+    
+    critical_signals = 0
+    
+    for f in findings:
+        sev = str(f.get("severity", "")).upper()
+    
+        if sev == "CRITICAL":
+            critical_signals += 3
+        elif sev == "HIGH":
+            critical_signals += 2
+        elif sev == "MEDIUM":
+            critical_signals += 1
+    
+    if critical_signals >= 6:
+        final_sev = "CRITICAL"
+    elif critical_signals >= 3:
+        final_sev = "HIGH"
+    elif critical_signals >= 1:
+        final_sev = "MEDIUM"
+    else:
+        final_sev = base_sev
+        
+        return {
+            "name": filename,
+            "version": "source",
+            "ecosystem": "source_code",
+            "is_malicious": len(findings) > 0,
+            "finding_count": len(findings),
+            "matches": findings,
+            "highest_severity": final_sev,
+        }
 
 @app.post("/scan")
 @limiter.limit("5/minute")
