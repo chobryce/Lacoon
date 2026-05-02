@@ -539,7 +539,7 @@ serverStatusEl.textContent = 'connecting...';
 async function warmup(retries = 5) {
   for (let i = 0; i < retries; i++) {
     try {
-      const r = await fetch(`${API_BASE}/ping`);
+      const r = await fetch(`${API_BASE}/`);
       if (r.ok) {
         serverDot.className = 'server-dot ready';
         serverStatusEl.textContent = 'server ready';
