@@ -246,6 +246,11 @@
       overflow: hidden;
       transform: rotateY(-10deg) rotateX(7deg);
       transition: transform .06s linear;
+      animation: previewFloat 5.5s ease-in-out infinite;
+    }
+    @keyframes previewFloat {
+      0%,100% { margin-top: 0px; }
+      50%      { margin-top: -10px; }
     }
 
     .preview-header { height: 58px; display:flex; align-items:center; justify-content:space-between; padding: 0 20px; border-bottom: 1px solid rgba(255,255,255,.08); font-family:var(--mono); font-size:10px; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; }
@@ -723,7 +728,7 @@
             <p>or click to browse — no account required.</p>
             <div class="drop-actions">
               <label class="file-label" for="fileInput">Choose file</label>
-              <button type="submit" id="scanBtn" disabled>Run scan</button>
+              <button type="button" id="scanBtn" disabled>Run scan</button>
             </div>
             <div class="file-name" id="fileName">No file selected</div>
           </div>
@@ -747,7 +752,7 @@
 
     <footer class="footer">
       <div><strong style="font-family:var(--grand);color:var(--ink);letter-spacing:.1em;font-size:18px">LAOCOON</strong><br/>Supply chain defense for people who ship.</div>
-      <div>Built for GitHub Pages + Render · FastAPI · SSE · OSV · GHSA</div>
+      <div>Built for GitHub Pages + Render · FastAPI · SSE · OSV · GHSA<br/><span id="copyrightLine"></span></div>
     </footer>
   </main>
 
@@ -825,28 +830,51 @@
     }(hoverables[i]));
   }
 
-  /* ── Preview 3-D tilt on scroll ─────────────────────────────────── */
+  /* ── Preview 3-D tilt on scroll — slower, no reset when off-screen ── */
   var spinV = 0, spin = 0, tilt = 0, drift = 0;
+  var previewVisible = true; /* track visibility so spin freezes off-screen */
   var lastSY = window.pageYOffset || 0, lastST = Date.now();
+
   window.addEventListener('scroll', function () {
+    if (!previewVisible) return; /* don't accumulate spin when card is off-screen */
     var now = Date.now();
     var y   = window.pageYOffset || 0;
     var dy  = y - lastSY;
     var dt  = Math.max(now - lastST, 16);
-    spinV += (dy / dt) * 4.5;
-    if (spinV >  9) spinV =  9;
-    if (spinV < -9) spinV = -9;
+    /* ÷ 3 vs old ÷1 — much slower spin */
+    spinV += (dy / dt) * 1.5;
+    if (spinV >  5) spinV =  5;
+    if (spinV < -5) spinV = -5;
     lastSY = y; lastST = now;
   }, false);
 
+  /* Freeze spin accumulation & snap back to rest when preview is off-screen */
+  if (window.IntersectionObserver) {
+    var previewStageEl = document.querySelector('.preview-stage');
+    if (previewStageEl) {
+      new IntersectionObserver(function (entries) {
+        previewVisible = entries[0].isIntersecting;
+        if (!previewVisible) {
+          /* bleed off velocity so it doesn't jump on re-entry */
+          spinV = 0;
+        }
+      }, { threshold: 0.1 }).observe(previewStageEl);
+    }
+  }
+
   (function previewLoop() {
-    spin  += spinV;
-    spinV *= 0.94;
-    if (Math.abs(spinV) < 0.01) spinV = 0;
+    if (previewVisible) {
+      spin  += spinV;
+      spinV *= 0.92; /* slower decay = longer gentle swing */
+      if (Math.abs(spinV) < 0.005) spinV = 0;
+    }
     var sy = window.pageYOffset || 0;
-    var td = Math.min(sy * 0.10, 250);
-    drift += (td - drift) * 0.07;
-    tilt  += (spinV * 0.20 - tilt) * 0.09;
+    var td = Math.min(sy * 0.08, 220);
+    drift += (td - drift) * 0.06;
+    tilt  += (spinV * 0.14 - tilt) * 0.08;
+    /* clamp spin so it never escapes to wild angles */
+    if (spin >  18) spin =  18;
+    if (spin < -18) spin = -18;
     if (previewEl) {
       previewEl.style.transform =
         'translateX(' + drift + 'px) rotateY(' + (-10 + spin) + 'deg) rotateX(' + (7 + tilt) + 'deg)';
@@ -931,10 +959,12 @@
     setFile(f);
   });
 
-  dropzoneEl.addEventListener('submit', function (e) {
-    e.preventDefault();
-    if (selectedFile) startScan(selectedFile);
-  });
+  /* Single scan trigger — button click only, no form submit */
+  if (scanBtn) {
+    scanBtn.addEventListener('click', function () {
+      if (selectedFile && !activeScan) startScan(selectedFile);
+    });
+  }
 
   /* ── Log helpers ─────────────────────────────────────────────────── */
   function appendEvent(html) {
@@ -1170,6 +1200,10 @@
         if (scanBtn) scanBtn.disabled = false;
       });
   }
+
+  /* ── Dynamic copyright year ──────────────────────────────────────── */
+  var copyrightEl = document.getElementById('copyrightLine');
+  if (copyrightEl) copyrightEl.textContent = '\u00a9 ' + new Date().getFullYear() + ' \uc870\uc900\ud64d';
 }());
   </script>
 </body>
