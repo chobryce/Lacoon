@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Laocoon — Supply Chain Defense</title>
-  <meta name="description" content="Laocoon scans dependency manifests and source files for malicious packages, typosquats, vulnerabilities, and suspicious code behavior." />
+  <meta name="description" content="Laocoon scans manifests, source code, archives, scripts, and uploaded files for malicious packages, typosquats, vulnerabilities, and suspicious code behavior." />
   <link rel="icon" type="image/png" href="favicon.png" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&family=Prata&display=swap" rel="stylesheet" />
 
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; cursor: none !important; }
 
     :root {
       color-scheme: dark;
@@ -22,13 +22,10 @@
       --faint: rgba(238, 236, 229, .45);
       --gold: #e4c28b;
       --gold2: #f2d9aa;
-      --ice: #effcff;
       --blue: #8bcfff;
       --green: #35e6a0;
       --amber: #f6b650;
       --red: #ff5872;
-      --line: rgba(255,255,255,.135);
-      --line2: rgba(255,255,255,.23);
       --mono: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
       --title: 'Playfair Display', Georgia, serif;
       --grand: 'Prata', Georgia, serif;
@@ -37,12 +34,12 @@
       --ease: cubic-bezier(.2,.8,.2,1);
     }
 
-    html { scroll-behavior: smooth; cursor: none; }
+    html { scroll-behavior: smooth; cursor: none !important; }
 
     body {
       min-height: 100vh;
       overflow-x: hidden;
-      cursor: none;
+      cursor: none !important;
       color: var(--ink);
       font-family: var(--body);
       background:
@@ -81,10 +78,8 @@
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
     }
 
-    a, button, label, input { cursor: none; }
     ::selection { background: rgba(228,194,139,.34); color: #fff; }
 
-    /* real moving lens cursor */
     #cursor {
       position: fixed;
       left: 50vw;
@@ -176,7 +171,6 @@
 
     #cursor.hover { transform: translate(-50%, -50%) scale(1.14); }
     #cursor.click { transform: translate(-50%, -50%) scale(.86); }
-
     @keyframes cursorGlass { 0%,100% { filter: brightness(1) saturate(1); } 50% { filter: brightness(1.11) saturate(1.06); } }
 
     .page {
@@ -198,11 +192,21 @@
     .brand { display: flex; align-items: center; gap: 14px; min-width: 240px; }
 
     .sigil {
-      width: 38px; height: 38px; display: grid; place-items: center;
-      font-family: var(--grand); font-size: 20px; color: var(--gold2);
-      border-radius: 14px; border: 1px solid rgba(255,255,255,.16);
-      background: linear-gradient(135deg, rgba(255,255,255,.105), rgba(255,255,255,.025));
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 14px 36px rgba(0,0,0,.25);
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.22);
+      background: linear-gradient(145deg, rgba(255,255,255,.22), rgba(255,255,255,.04));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 14px 34px rgba(0,0,0,.34);
+    }
+
+    .sigil span {
+      font-family: var(--grand);
+      font-size: 24px;
+      color: #f4e3bf;
+      text-shadow: 0 0 18px rgba(255,255,255,.12);
     }
 
     .brand-title {
@@ -211,22 +215,34 @@
       line-height: .95;
       letter-spacing: .08em;
       text-transform: uppercase;
-      text-shadow:
-        0 1px 0 rgba(255,255,255,.18),
-        0 8px 24px rgba(0,0,0,.44),
-        0 0 20px rgba(255,255,255,.06);
+      text-shadow: 0 1px 0 rgba(255,255,255,.18), 0 8px 24px rgba(0,0,0,.44), 0 0 20px rgba(255,255,255,.06);
     }
-    .brand-sub { margin-top: 6px; font-family: var(--mono); font-size: 9px; letter-spacing: .26em; color: var(--muted); text-transform: uppercase; }
+
+    .brand-sub {
+      margin-top: 6px;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: .26em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
 
     .navlinks { display: flex; align-items: center; gap: clamp(18px, 3vw, 42px); color: var(--muted); font-family: var(--body); font-size: 13px; }
     .navlinks a { color: inherit; text-decoration: none; transition: color .2s ease, transform .2s ease; }
     .navlinks a:hover { color: #fff; transform: translateY(-1px); }
 
     .status-pill {
-      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-      min-width: 154px; padding: 10px 15px; border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.13); color: rgba(255,255,255,.74);
-      font-family: var(--mono); font-size: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-width: 154px;
+      padding: 10px 15px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.13);
+      color: rgba(255,255,255,.74);
+      font-family: var(--mono);
+      font-size: 10px;
       background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.018));
       box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 14px 34px rgba(0,0,0,.24);
       backdrop-filter: blur(24px) saturate(165%);
@@ -256,11 +272,7 @@
       line-height: .97;
       letter-spacing: -.07em;
       color: rgba(255,255,255,.96);
-      text-shadow:
-        0 1px 0 rgba(255,255,255,.28),
-        0 7px 18px rgba(0,0,0,.58),
-        0 0 34px rgba(255,255,255,.08);
-      transform: translateZ(0);
+      text-shadow: 0 1px 0 rgba(255,255,255,.28), 0 7px 18px rgba(0,0,0,.58), 0 0 34px rgba(255,255,255,.08);
     }
 
     h1 .italic {
@@ -284,8 +296,12 @@
     .button-glass {
       position: relative;
       overflow: hidden;
-      min-width: 225px; padding: 16px 22px; border-radius: 13px;
-      display: flex; align-items: center; justify-content: space-between;
+      min-width: 225px;
+      padding: 16px 22px;
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       border: 1px solid rgba(255,255,255,.22);
       background: radial-gradient(circle at 0% 0%, rgba(255,255,255,.22), transparent 44%), linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.035));
       box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 18px 42px rgba(0,0,0,.31);
@@ -293,95 +309,48 @@
     }
 
     .button-glass span:last-child { font-family: var(--mono); color: var(--gold2); }
-    .button-glass:hover {
-      transform: translateY(-3px);
-      border-color: rgba(255,255,255,.34);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 24px 56px rgba(0,0,0,.38);
-    }
-
-    .button-glass::before {
-      content:'';
-      position:absolute;
-      inset:-40%;
-      background:linear-gradient(115deg, transparent 20%, rgba(255,255,255,.22) 40%, transparent 60%);
-      transform:translateX(-60%) rotate(8deg);
-      transition:transform .8s var(--ease);
-      pointer-events:none;
-    }
-
-    .button-glass:hover::before {
-      transform:translateX(70%) rotate(8deg);
-    }
+    .button-glass:hover { transform: translateY(-3px); border-color: rgba(255,255,255,.34); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 24px 56px rgba(0,0,0,.38); }
+    .button-glass::before { content:''; position:absolute; inset:-40%; background:linear-gradient(115deg, transparent 20%, rgba(255,255,255,.22) 40%, transparent 60%); transform:translateX(-60%) rotate(8deg); transition:transform .8s var(--ease); pointer-events:none; }
+    .button-glass:hover::before { transform:translateX(70%) rotate(8deg); }
     .text-link { padding: 12px 0; border-bottom: 1px solid rgba(228,194,139,.60); color: rgba(255,255,255,.86); }
     .text-link:hover { transform: translateY(-2px); color: #fff; }
 
-    /* Apple-glass floating scan preview replaces huge hero ball */
     .preview-stage {
       position: relative;
       min-height: 560px;
-      perspective: 1300px;
+      perspective: 1500px;
       display: grid;
       place-items: center;
+      --scroll-spin: 0deg;
+      --scroll-drift: 0px;
+      --scroll-tilt: 0deg;
     }
 
-    .preview-glow {
-      position: absolute;
-      width: 500px;
-      height: 500px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(179,224,255,.16), transparent 60%);
-      filter: blur(10px);
-    }
+    .preview-glow { position: absolute; width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle, rgba(179,224,255,.16), transparent 60%); filter: blur(10px); }
 
     .floating-preview {
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.22),
-        inset 0 -1px 0 rgba(0,0,0,.32),
-        0 60px 120px rgba(0,0,0,.58),
-        0 0 80px rgba(180,220,255,.14),
-        0 0 180px rgba(120,180,255,.08);
       width: min(500px, 100%);
       border-radius: 34px;
-      transform: rotateY(-9deg) rotateX(7deg) translateY(0);
+      transform: translateX(var(--scroll-drift)) rotateY(calc(-9deg + var(--scroll-spin))) rotateX(calc(7deg + var(--scroll-tilt))) translateY(0);
       transform-style: preserve-3d;
-      animation: previewFloat 7s ease-in-out infinite;
+      transition: transform .08s linear;
       border: 1px solid rgba(255,255,255,.18);
       border-top-color: rgba(255,255,255,.34);
       border-left-color: rgba(255,255,255,.26);
-      background:
-        radial-gradient(circle at 25% 0%, rgba(255,255,255,.22), transparent 15rem),
-        radial-gradient(circle at 90% 65%, rgba(139,204,255,.10), transparent 14rem),
-        linear-gradient(145deg, rgba(255,255,255,.105), rgba(255,255,255,.026));
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.18),
-        inset 0 -1px 0 rgba(0,0,0,.32),
-        0 44px 100px rgba(0,0,0,.52),
-        0 0 70px rgba(150,210,255,.10);
+      background: radial-gradient(circle at 25% 0%, rgba(255,255,255,.22), transparent 15rem), radial-gradient(circle at 90% 65%, rgba(139,204,255,.10), transparent 14rem), linear-gradient(145deg, rgba(255,255,255,.105), rgba(255,255,255,.026));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.22), inset 0 -1px 0 rgba(0,0,0,.32), 0 60px 120px rgba(0,0,0,.58), 0 0 80px rgba(180,220,255,.14), 0 0 180px rgba(120,180,255,.08);
       backdrop-filter: blur(36px) saturate(180%);
       overflow: hidden;
       position: relative;
     }
 
-    .floating-preview::before {
-      content: '';
-      position: absolute;
-      inset: -1px;
-      border-radius: inherit;
-      background:
-        linear-gradient(118deg, rgba(255,255,255,.25), transparent 24%, transparent 70%, rgba(255,255,255,.08)),
-        linear-gradient(48deg, transparent 0 52%, rgba(255,255,255,.11) 55%, transparent 58%);
-      pointer-events: none;
-    }
-
-    @keyframes previewFloat { 0%,100% { transform: rotateY(-9deg) rotateX(7deg) translateY(0); } 50% { transform: rotateY(-6deg) rotateX(5deg) translateY(-14px); } }
-
+    .floating-preview::before { content: ''; position: absolute; inset: -1px; border-radius: inherit; background: linear-gradient(118deg, rgba(255,255,255,.25), transparent 24%, transparent 70%, rgba(255,255,255,.08)), linear-gradient(48deg, transparent 0 52%, rgba(255,255,255,.11) 55%, transparent 58%); pointer-events: none; }
     .preview-header { height: 62px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; border-bottom: 1px solid rgba(255,255,255,.08); font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
     .lights { display: flex; gap: 7px; }
     .lights i { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.28); box-shadow: 0 0 12px rgba(255,255,255,.12); }
     .lights i:nth-child(1) { background: rgba(255,88,114,.8); }
     .lights i:nth-child(2) { background: rgba(246,182,80,.8); }
     .lights i:nth-child(3) { background: rgba(53,230,160,.8); }
-
     .preview-body { padding: 24px; display: grid; gap: 16px; }
     .risk-card { border-radius: 22px; border: 1px solid rgba(255,255,255,.10); background: rgba(2,6,10,.30); padding: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,.07); }
     .risk-title { display: flex; justify-content: space-between; gap: 14px; font-family: var(--mono); font-size: 10px; color: var(--faint); text-transform: uppercase; letter-spacing: .12em; margin-bottom: 16px; }
@@ -393,7 +362,6 @@
     .mini-lines i:nth-child(1) { width: 84%; }
     .mini-lines i:nth-child(2) { width: 54%; }
     .mini-lines i:nth-child(3) { width: 72%; }
-
     .finding-list { display: grid; gap: 10px; }
     .finding { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 14px; border-radius: 17px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.028); font-family: var(--mono); font-size: 10px; color: var(--muted); }
     .sev { color: var(--gold2); }
@@ -418,10 +386,7 @@
     .feature-card h3 { font-family: var(--title); font-size: 17px; font-weight: 600; margin-bottom: 10px; }
     .feature-card p { color: var(--muted); font-size: 12px; line-height: 1.75; font-weight: 300; }
 
-    .scan-shell { margin-top: 52px; border-radius: 26px; border: 1px solid rgba(255,255,255,.16); background:
-        radial-gradient(circle at 12% 0%, rgba(255,255,255,.16), transparent 18rem),
-        radial-gradient(circle at 100% 0%, rgba(155,215,255,.11), transparent 22rem),
-        linear-gradient(145deg, rgba(255,255,255,.085), rgba(255,255,255,.018)); box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 28px 80px rgba(0,0,0,.38); backdrop-filter: blur(34px) saturate(175%); padding: 34px; display: grid; grid-template-columns: 300px 1fr; gap: 34px; }
+    .scan-shell { margin-top: 52px; border-radius: 26px; border: 1px solid rgba(255,255,255,.16); background: radial-gradient(circle at 12% 0%, rgba(255,255,255,.16), transparent 18rem), radial-gradient(circle at 100% 0%, rgba(155,215,255,.11), transparent 22rem), linear-gradient(145deg, rgba(255,255,255,.085), rgba(255,255,255,.018)); box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 28px 80px rgba(0,0,0,.38); backdrop-filter: blur(34px) saturate(175%); padding: 34px; display: grid; grid-template-columns: 300px 1fr; gap: 34px; }
     .scan-intro h2 { font-family: var(--title); font-weight: 500; font-size: 34px; line-height: 1.12; letter-spacing: -.05em; margin-bottom: 18px; }
     .scan-intro h2 em { color: var(--gold2); font-style: italic; }
     .scan-intro p { color: var(--muted); font-size: 13px; line-height: 1.85; font-weight: 300; }
@@ -432,12 +397,8 @@
     .dropzone:hover, .dropzone.drag { transform: translateY(-5px); border-color: rgba(255,255,255,.45); box-shadow: 0 24px 58px rgba(0,0,0,.33), inset 0 1px 0 rgba(255,255,255,.10); }
     .dropzone input { display: none; }
     .drop-inner { position: relative; z-index: 2; padding: 34px; }
-
-    .scanner-orb {
-      backdrop-filter: blur(7px) brightness(1.4) contrast(1.2) saturate(1.55);
-      -webkit-backdrop-filter: blur(7px) brightness(1.4) contrast(1.2) saturate(1.55); width: 98px; height: 98px; margin: 0 auto 18px; border-radius: 50%; position: relative; overflow: hidden; background: radial-gradient(circle at 28% 20%, rgba(255,255,255,.96) 0 7%, rgba(255,255,255,.45) 13%, transparent 29%), linear-gradient(180deg, rgba(9,18,28,.60) 0 39%, rgba(255,255,255,.28) 41% 45%, rgba(121,205,255,.42) 47% 72%, rgba(255,255,255,.10)), radial-gradient(circle at 50% 50%, rgba(255,255,255,.15), rgba(0,0,0,.15)); border: 1px solid rgba(255,255,255,.44); box-shadow: inset 13px 14px 22px rgba(255,255,255,.24), inset -18px -22px 30px rgba(5,15,25,.42), 0 22px 44px rgba(0,0,0,.35), 0 0 42px rgba(139,204,255,.16); }
+    .scanner-orb { width: 98px; height: 98px; margin: 0 auto 18px; border-radius: 50%; position: relative; overflow: hidden; background: radial-gradient(circle at 28% 20%, rgba(255,255,255,.96) 0 7%, rgba(255,255,255,.45) 13%, transparent 29%), linear-gradient(180deg, rgba(9,18,28,.60) 0 39%, rgba(255,255,255,.28) 41% 45%, rgba(121,205,255,.42) 47% 72%, rgba(255,255,255,.10)), radial-gradient(circle at 50% 50%, rgba(255,255,255,.15), rgba(0,0,0,.15)); border: 1px solid rgba(255,255,255,.44); box-shadow: inset 13px 14px 22px rgba(255,255,255,.24), inset -18px -22px 30px rgba(5,15,25,.42), 0 22px 44px rgba(0,0,0,.35), 0 0 42px rgba(139,204,255,.16); backdrop-filter: blur(7px) brightness(1.4) contrast(1.2) saturate(1.55); -webkit-backdrop-filter: blur(7px) brightness(1.4) contrast(1.2) saturate(1.55); }
     .scanner-orb::after { content: ''; position: absolute; left: -15%; right: -15%; top: 43%; height: 17px; border-radius: 999px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.50), rgba(139,204,255,.32), rgba(255,255,255,.38), transparent); transform: rotate(-5deg); }
-
     .dropzone h3 { font-family: var(--title); font-style: italic; font-size: 24px; font-weight: 500; margin-bottom: 8px; }
     .dropzone p { color: var(--muted); font-size: 12px; line-height: 1.7; }
     .actions { margin-top: 22px; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
@@ -462,13 +423,12 @@
     .quote-text { font-family: var(--title); font-style: italic; font-size: 25px; color: rgba(255,255,255,.85); line-height: 1.35; }
     .quote-text small { display: block; margin-top: 10px; font-family: var(--mono); font-style: normal; color: var(--faint); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
     .signature { font-family: var(--hand); font-size: 40px; color: var(--gold2); text-align: right; transform: rotate(-2deg); }
-
     .footer { margin-top: 54px; padding: 34px 0 0; border-top: 1px solid rgba(255,255,255,.10); display: flex; justify-content: space-between; gap: 28px; color: var(--faint); font-family: var(--mono); font-size: 10px; line-height: 1.8; }
 
     @media (max-width: 1080px) {
       .hero { grid-template-columns: 1fr; }
       .preview-stage { min-height: 440px; }
-      .floating-preview { transform: none; animation: none; }
+      .floating-preview { transform: none; }
       .benefits { grid-template-columns: repeat(2, 1fr); }
       .benefit:nth-child(2) { border-right: none; }
       .section-grid, .scan-shell { grid-template-columns: 1fr; }
@@ -478,7 +438,7 @@
     }
 
     @media (max-width: 720px) {
-      html, body, a, button, label, input { cursor: auto; }
+      html, body, a, button, label, input, *, *::before, *::after { cursor: auto !important; }
       #cursor { display: none; }
       .page { width: min(100% - 28px, 1200px); }
       .topbar { height: auto; padding: 24px 0; align-items: flex-start; flex-direction: column; }
@@ -500,7 +460,7 @@
   <main class="page">
     <nav class="topbar">
       <div class="brand" aria-label="Laocoon home">
-        <div class="sigil" style="background:linear-gradient(145deg, rgba(255,255,255,.22), rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 14px 34px rgba(0,0,0,.34);"><span style="font-family:var(--grand);font-size:24px;color:#f4e3bf;text-shadow:0 0 18px rgba(255,255,255,.12);">L</span></div>
+        <div class="sigil"><span>L</span></div>
         <div>
           <div class="brand-title">Laocoon</div>
           <div class="brand-sub">Supply Chain Defense</div>
@@ -515,10 +475,7 @@
         <a href="#scan">About</a>
       </div>
 
-      <div class="status-pill" id="serverStatus">
-        <span class="dot" id="serverDot"></span>
-        <span id="serverText">waking server</span>
-      </div>
+      <div class="status-pill" id="serverStatus"><span class="dot" id="serverDot"></span><span id="serverText">waking server</span></div>
     </nav>
 
     <section class="hero" id="product">
@@ -526,30 +483,16 @@
         <div class="eyebrow">Open source. Transparent. Relentless.</div>
         <h1>See every file. <span class="italic">Stop every threat.</span></h1>
         <p class="lead">Laocoon scans manifests, source code, archives, scripts, and uploaded files against malware intelligence, OSV/GHSA advisories, static analysis, behavioral heuristics, typosquat signals, and suspicious execution patterns. <em>Know before you trust it.</em></p>
-        <div class="cta-row">
-          <a class="button-glass" href="#scan"><span>Scan your project</span><span>→</span></a>
-          <a class="text-link" href="#how">View documentation →</a>
-        </div>
+        <div class="cta-row"><a class="button-glass" href="#scan"><span>Scan your project</span><span>&rarr;</span></a><a class="text-link" href="#how">View documentation &rarr;</a></div>
       </div>
 
       <div class="preview-stage" aria-hidden="true">
         <div class="preview-glow"></div>
         <div class="floating-preview">
-          <div class="preview-header">
-            <div class="lights"><i></i><i></i><i></i></div>
-            <span>live scan preview</span>
-          </div>
+          <div class="preview-header"><div class="lights"><i></i><i></i><i></i></div><span>live scan preview</span></div>
           <div class="preview-body">
-            <div class="risk-card">
-              <div class="risk-title"><span>risk overview</span><strong>3 critical</strong></div>
-              <div class="bar"><span></span></div>
-              <div class="mini-lines"><i></i><i></i><i></i></div>
-            </div>
-            <div class="finding-list">
-              <div class="finding"><span>malicious-code-execution</span><span class="sev">CRITICAL</span></div>
-              <div class="finding"><span>credential-exfiltration</span><span class="sev">HIGH</span></div>
-              <div class="finding"><span>obfuscated-payload</span><span class="sev">MEDIUM</span></div>
-            </div>
+            <div class="risk-card"><div class="risk-title"><span>risk overview</span><strong>3 critical</strong></div><div class="bar"><span></span></div><div class="mini-lines"><i></i><i></i><i></i></div></div>
+            <div class="finding-list"><div class="finding"><span>malicious-code-execution</span><span class="sev">CRITICAL</span></div><div class="finding"><span>credential-exfiltration</span><span class="sev">HIGH</span></div><div class="finding"><span>obfuscated-payload</span><span class="sev">MEDIUM</span></div></div>
           </div>
         </div>
       </div>
@@ -557,21 +500,16 @@
 
     <section class="benefits" aria-label="Product benefits">
       <div class="benefit"><div class="benefit-icon">◇</div><div><h3>Layered Intelligence</h3><p>Static analysis, advisories, heuristics, and provenance checks.</p></div></div>
-      <div class="benefit"><div class="benefit-icon">◎</div><div><h3>Malware Focused</h3><p>Specialized in detecting malicious package behavior.</p></div></div>
+      <div class="benefit"><div class="benefit-icon">◎</div><div><h3>Malware Focused</h3><p>Specialized in detecting malicious file and package behavior.</p></div></div>
       <div class="benefit"><div class="benefit-icon">ϟ</div><div><h3>Live Streaming Scan</h3><p>Deep scans stream live from the FastAPI backend.</p></div></div>
       <div class="benefit"><div class="benefit-icon">▢</div><div><h3>Privacy First</h3><p>Your scan runs through your own Laocoon API endpoint.</p></div></div>
     </section>
 
     <section class="section" id="how">
       <div class="section-grid">
-        <div>
-          <div class="section-kicker">How it works</div>
-          <h2 class="section-title">Layered analysis. <em>Zero blind spots.</em></h2>
-          <p class="section-copy">Laocoon combines advisory intelligence, source inspection, runtime heuristics, metadata analysis, and trust signals so suspicious files cannot quietly disappear inside modern software ecosystems.</p>
-        </div>
-
+        <div><div class="section-kicker">How it works</div><h2 class="section-title">Layered analysis. <em>Zero blind spots.</em></h2><p class="section-copy">Laocoon combines advisory intelligence, source inspection, runtime heuristics, metadata analysis, and trust signals so suspicious files cannot quietly disappear inside modern software ecosystems.</p></div>
         <div class="cards">
-          <article class="feature-card"><div class="feature-icon">⌘</div><h3>Advisory Intel</h3><p>Checks ecosystem-specific advisory sources and malicious package reports.</p></article>
+          <article class="feature-card"><div class="feature-icon">⌘</div><h3>Advisory Intel</h3><p>Checks ecosystem-specific advisory sources and malicious file or package reports.</p></article>
           <article class="feature-card"><div class="feature-icon">&lt;/&gt;</div><h3>Static Analysis</h3><p>Rules inspect source, scripts, and suspicious execution paths.</p></article>
           <article class="feature-card"><div class="feature-icon">⌖</div><h3>Behavioral Heuristics</h3><p>Metadata, install-time scripts, exfiltration, and evasion patterns.</p></article>
           <article class="feature-card"><div class="feature-icon">⬡</div><h3>Ecosystem Defense</h3><p>Typosquatting, dependency confusion, and registry integrity checks.</p></article>
@@ -580,284 +518,317 @@
     </section>
 
     <section class="scan-shell" id="scan" aria-label="Start a scan">
-      <div class="scan-intro">
-        <div class="section-kicker">Start a scan</div>
-        <h2>Drop your files or source. <em>We’ll tell you what should not be trusted.</em></h2>
-        <p>Integrated directly with your Render FastAPI backend: warmup uses <code>/ping</code>, uploads stream into <code>/scan</code>, and live results render through Server-Sent Events with real-time threat telemetry.</p>
-        <div class="formats"><span>package.json</span><span>package-lock.json</span><span>pyproject.toml</span><span>requirements.txt</span><span>.py · .js · .ts · .txt · more</span></div>
-      </div>
-
+      <div class="scan-intro"><div class="section-kicker">Start a scan</div><h2>Drop your files or source. <em>We’ll tell you what should not be trusted.</em></h2><p>Integrated directly with your Render FastAPI backend: warmup uses <code>/ping</code>, uploads stream into <code>/scan</code>, and live results render through Server-Sent Events with real-time threat telemetry.</p><div class="formats"><span>package.json</span><span>package-lock.json</span><span>pyproject.toml</span><span>requirements.txt</span><span>.py · .js · .ts · .txt · more</span></div></div>
       <div>
-        <form class="dropzone" id="dropzone">
-          <input id="fileInput" type="file" accept=".json,.txt,.toml,.py,.pyw,.js,.mjs,.cjs,.ts,.tsx,.jsx,.log,.conf,.cfg" />
-          <div class="drop-inner">
-            <div class="scanner-orb"></div>
-            <h3>Drop file here</h3>
-            <p>or click to browse. Crystal scan mode uses your existing backend stream.</p>
-            <div class="actions"><label class="file-label" for="fileInput">Choose file</label><button type="submit" id="scanBtn" disabled>Run scan</button></div>
-            <div class="file-name" id="fileName">No file selected</div>
-          </div>
-        </form>
-
-        <div class="results" id="results">
-          <div class="results-head"><span>Scan output</span><span id="summaryText">waiting</span></div>
-          <div id="log"></div>
-        </div>
+        <form class="dropzone" id="dropzone"><input id="fileInput" type="file" accept=".json,.txt,.toml,.py,.pyw,.js,.mjs,.cjs,.ts,.tsx,.jsx,.log,.conf,.cfg" /><div class="drop-inner"><div class="scanner-orb"></div><h3>Drop file here</h3><p>or click to browse. Crystal scan mode uses your existing backend stream.</p><div class="actions"><label class="file-label" for="fileInput">Choose file</label><button type="submit" id="scanBtn" disabled>Run scan</button></div><div class="file-name" id="fileName">No file selected</div></div></form>
+        <div class="results" id="results"><div class="results-head"><span>Scan output</span><span id="summaryText">waiting</span></div><div id="log"></div></div>
       </div>
     </section>
 
-    <section class="quote" aria-label="Laocoon quote">
-      <div class="quote-mark">“</div>
-      <div class="quote-text">I fear the Greeks, even when they bear gifts.<small>Laocoön, priest of Troy — Virgil’s Aeneid</small></div>
-      <div class="signature">— Laocoön</div>
-    </section>
-
-    <footer class="footer">
-      <div><strong style="font-family: var(--grand); color: var(--ink); letter-spacing: .1em; font-size: 18px;">LAOCOON</strong><br />Supply chain defense for people who ship.</div>
-      <div>Built for GitHub Pages + Render · FastAPI · SSE · OSV · GHSA</div>
-    </footer>
+    <section class="quote" aria-label="Laocoon quote"><div class="quote-mark">“</div><div class="quote-text">I fear the Greeks, even when they bear gifts.<small>Laocoön, priest of Troy — Virgil’s Aeneid</small></div><div class="signature">— Laocoön</div></section>
+    <footer class="footer"><div><strong style="font-family: var(--grand); color: var(--ink); letter-spacing: .1em; font-size: 18px;">LAOCOON</strong><br />Supply chain defense for people who ship.</div><div>Built for GitHub Pages + Render · FastAPI · SSE · OSV · GHSA</div></footer>
   </main>
 
   <script>
-    var API_BASE = 'https://lacooon-api.onrender.com';
+(function () {
+  'use strict';
 
-    var cursor = document.getElementById('cursor');
-    var serverDot = document.getElementById('serverDot');
-    var serverText = document.getElementById('serverText');
-    var dropzone = document.getElementById('dropzone');
-    var fileInput = document.getElementById('fileInput');
-    var fileName = document.getElementById('fileName');
-    var scanBtn = document.getElementById('scanBtn');
-    var results = document.getElementById('results');
-    var logEl = document.getElementById('log');
-    var summaryText = document.getElementById('summaryText');
+  var API_BASE = 'https://lacooon-api.onrender.com';
+  var LF = String.fromCharCode(10);
+  var EVENT_BREAK = LF + LF;
 
-    var selectedFile = null;
-    var mouseX = window.innerWidth / 2;
-    var mouseY = window.innerHeight / 2;
-    var cursorX = mouseX;
-    var cursorY = mouseY;
-    var cursorStarted = false;
+  var cursor = document.getElementById('cursor');
+  var serverDot = document.getElementById('serverDot');
+  var serverText = document.getElementById('serverText');
+  var dropzone = document.getElementById('dropzone');
+  var fileInput = document.getElementById('fileInput');
+  var fileName = document.getElementById('fileName');
+  var scanBtn = document.getElementById('scanBtn');
+  var results = document.getElementById('results');
+  var logEl = document.getElementById('log');
+  var summaryText = document.getElementById('summaryText');
+  var previewStage = document.querySelector('.preview-stage');
+  var floatingPreview = document.querySelector('.floating-preview');
 
-    function moveCursorNow(x, y) {
-      mouseX = x;
-      mouseY = y;
-      if (!cursorStarted) {
-        cursorX = x;
-        cursorY = y;
-        cursorStarted = true;
+  var selectedFile = null;
+  var mouseX = window.innerWidth / 2;
+  var mouseY = window.innerHeight / 2;
+  var cursorX = mouseX;
+  var cursorY = mouseY;
+  var started = false;
+
+  var spin = 0;
+  var spinVelocity = 0;
+  var drift = 0;
+  var tilt = 0;
+  var lastScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+  var lastScrollTime = new Date().getTime();
+
+  function setMouse(x, y) {
+    mouseX = x;
+    mouseY = y;
+    if (!started) {
+      started = true;
+      cursorX = x;
+      cursorY = y;
+      if (cursor) cursor.style.opacity = '0.985';
+    }
+  }
+
+  function cursorLoop() {
+    cursorX += (mouseX - cursorX) * 0.65;
+    cursorY += (mouseY - cursorY) * 0.65;
+    if (cursor) {
+      cursor.style.left = cursorX + 'px';
+      cursor.style.top = cursorY + 'px';
+    }
+    window.requestAnimationFrame(cursorLoop);
+  }
+
+  function previewLoop() {
+    var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+    spin += spinVelocity;
+    spinVelocity *= 0.90;
+    if (Math.abs(spinVelocity) < 0.015) spinVelocity = 0;
+
+    var targetDrift = y * 0.13;
+    if (targetDrift > 330) targetDrift = 330;
+    if (targetDrift < -60) targetDrift = -60;
+
+    drift += (targetDrift - drift) * 0.09;
+    tilt += ((spinVelocity * 0.35) - tilt) * 0.12;
+
+    if (previewStage) {
+      previewStage.style.setProperty('--scroll-spin', spin + 'deg');
+      previewStage.style.setProperty('--scroll-drift', drift + 'px');
+      previewStage.style.setProperty('--scroll-tilt', tilt + 'deg');
+    }
+    if (floatingPreview) {
+      floatingPreview.style.transform = 'translateX(' + drift + 'px) rotateY(' + (-9 + spin) + 'deg) rotateX(' + (7 + tilt) + 'deg) translateY(0)';
+    }
+    window.requestAnimationFrame(previewLoop);
+  }
+
+  function onMove(event) {
+    event = event || window.event;
+    if (!event) return;
+    setMouse(event.clientX, event.clientY);
+  }
+
+  function addHoverTargets() {
+    var targets = document.querySelectorAll('a, button, .file-label, .dropzone, .status-pill, .feature-card, .benefit');
+    for (var i = 0; i < targets.length; i += 1) {
+      targets[i].addEventListener('mouseenter', function () { if (cursor) cursor.classList.add('hover'); }, false);
+      targets[i].addEventListener('mouseleave', function () { if (cursor) cursor.classList.remove('hover'); }, false);
+    }
+  }
+
+  function setServerState(state, text) {
+    if (!serverDot || !serverText) return;
+    serverDot.className = 'dot';
+    if (state === 'ready') serverDot.className = 'dot ready';
+    if (state === 'error') serverDot.className = 'dot error';
+    serverText.textContent = text;
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function nested(obj, key1, key2, fallback) {
+    if (!obj || !obj[key1]) return fallback;
+    if (typeof key2 === 'undefined') return obj[key1];
+    if (!obj[key1][key2]) return fallback;
+    return obj[key1][key2];
+  }
+
+  function addEventLine(data) {
+    if (!logEl) return;
+    var item = document.createElement('div');
+    var severity = String(data.highest_severity || data.severity || nested(data, 'result', 'highest_severity', '')).toLowerCase();
+    item.className = 'event ' + severity;
+
+    if (data.type === 'status') {
+      item.innerHTML = '<strong>status</strong> · ' + escapeHtml(data.message || data.phase || 'working');
+    } else if (data.type === 'finding') {
+      var pkg = data.package || data.name || nested(data, 'result', 'package', 'package');
+      var sev = data.highest_severity || data.severity || nested(data, 'result', 'highest_severity', 'INFO');
+      var count = 0;
+      if (typeof data.finding_count !== 'undefined') count = data.finding_count;
+      else if (data.findings && data.findings.length) count = data.findings.length;
+      else count = nested(data, 'result', 'finding_count', 0);
+      item.innerHTML = '<strong>' + escapeHtml(pkg) + '</strong> · ' + escapeHtml(sev) + ' · ' + count + ' finding' + (count === 1 ? '' : 's');
+    } else if (data.type === 'summary') {
+      var flagged = typeof data.flagged !== 'undefined' ? data.flagged : (data.total_findings || 0);
+      var total = typeof data.total !== 'undefined' ? data.total : (data.scanned || '?');
+      if (summaryText) summaryText.textContent = flagged + ' flagged / ' + total + ' scanned';
+      item.classList.add(flagged ? 'high' : 'clean');
+      item.innerHTML = '<strong>summary</strong> · ' + escapeHtml(JSON.stringify(data));
+    } else if (data.type === 'done') {
+      item.classList.add('clean');
+      item.innerHTML = '<strong>done</strong> · scan stream closed';
+    } else if (data.type === 'error') {
+      item.classList.add('critical');
+      item.innerHTML = '<strong>error</strong> · ' + escapeHtml(data.message || 'scan failed');
+    } else {
+      item.innerHTML = '<strong>event</strong> · ' + escapeHtml(JSON.stringify(data));
+    }
+
+    logEl.appendChild(item);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setSelectedFile(file) {
+    selectedFile = file;
+    if (fileName) fileName.textContent = file ? file.name + ' · ' + (file.size / 1024).toFixed(1) + ' KB' : 'No file selected';
+    if (scanBtn) scanBtn.disabled = !file;
+  }
+
+  function parseSseBuffer(buffer, onEvent) {
+    var chunks = buffer.split(EVENT_BREAK);
+    var remainder = chunks.pop() || '';
+    for (var i = 0; i < chunks.length; i += 1) {
+      var lines = chunks[i].split(LF);
+      var payload = null;
+      for (var j = 0; j < lines.length; j += 1) {
+        if (lines[j].indexOf('data:') === 0) payload = lines[j].slice(5).trim();
       }
+      if (payload) onEvent(payload);
     }
+    return remainder;
+  }
 
-    function animateCursor() {
-      cursorX += (mouseX - cursorX) * 0.42;
-      cursorY += (mouseY - cursorY) * 0.42;
-      if (cursor) {
-        cursor.style.left = cursorX + 'px';
-        cursor.style.top = cursorY + 'px';
-      }
-      window.requestAnimationFrame(animateCursor);
+  function warmup() {
+    setServerState('warming', 'waking server');
+    if (!window.fetch) {
+      setServerState('error', 'fetch unavailable');
+      return;
     }
-
-    function addHoverTargets() {
-      var targets = document.querySelectorAll('a, button, .file-label, .dropzone, .status-pill, .feature-card, .benefit');
-      for (var i = 0; i < targets.length; i++) {
-        targets[i].addEventListener('mouseenter', function () {
-          if (cursor) cursor.classList.add('hover');
-        });
-        targets[i].addEventListener('mouseleave', function () {
-          if (cursor) cursor.classList.remove('hover');
-        });
-      }
-    }
-
-    document.addEventListener('mousemove', function (event) {
-      moveCursorNow(event.clientX, event.clientY);
-    }, false);
-
-    document.addEventListener('pointermove', function (event) {
-      moveCursorNow(event.clientX, event.clientY);
-    }, false);
-
-    window.addEventListener('mousedown', function () {
-      if (cursor) cursor.classList.add('click');
-    }, false);
-
-    window.addEventListener('mouseup', function () {
-      if (cursor) cursor.classList.remove('click');
-    }, false);
-
-    function setServerState(state, text) {
-      if (!serverDot || !serverText) return;
-      serverDot.className = 'dot';
-      if (state === 'ready') serverDot.className = 'dot ready';
-      if (state === 'error') serverDot.className = 'dot error';
-      serverText.textContent = text;
-    }
-
-    function escapeHtml(value) {
-      return String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/\"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    }
-
-    function getNested(obj, path, fallback) {
-      var cur = obj;
-      for (var i = 0; i < path.length; i++) {
-        if (!cur || typeof cur !== 'object' || !(path[i] in cur)) return fallback;
-        cur = cur[path[i]];
-      }
-      return cur == null ? fallback : cur;
-    }
-
-    function addEventLine(data) {
-      if (!logEl) return;
-
-      var item = document.createElement('div');
-      var severity = String(data.highest_severity || data.severity || getNested(data, ['result', 'highest_severity'], '')).toLowerCase();
-      item.className = 'event ' + severity;
-
-      if (data.type === 'status') {
-        item.innerHTML = '<strong>status</strong> · ' + escapeHtml(data.message || data.phase || 'working');
-      } else if (data.type === 'finding') {
-        var pkg = data.package || data.name || getNested(data, ['result', 'package'], 'package');
-        var sev = data.highest_severity || data.severity || getNested(data, ['result', 'highest_severity'], 'INFO');
-        var count = 0;
-        if (typeof data.finding_count !== 'undefined') count = data.finding_count;
-        else if (data.findings && data.findings.length) count = data.findings.length;
-        else count = getNested(data, ['result', 'finding_count'], 0);
-        item.innerHTML = '<strong>' + escapeHtml(pkg) + '</strong> · ' + escapeHtml(sev) + ' · ' + count + ' finding' + (count === 1 ? '' : 's');
-      } else if (data.type === 'summary') {
-        var flagged = typeof data.flagged !== 'undefined' ? data.flagged : (data.total_findings || 0);
-        var total = typeof data.total !== 'undefined' ? data.total : (data.scanned || '?');
-        if (summaryText) summaryText.textContent = flagged + ' flagged / ' + total + ' scanned';
-        item.classList.add(flagged ? 'high' : 'clean');
-        item.innerHTML = '<strong>summary</strong> · ' + escapeHtml(JSON.stringify(data));
-      } else if (data.type === 'done') {
-        item.classList.add('clean');
-        item.innerHTML = '<strong>done</strong> · scan stream closed';
-      } else if (data.type === 'error') {
-        item.classList.add('critical');
-        item.innerHTML = '<strong>error</strong> · ' + escapeHtml(data.message || 'scan failed');
-      } else {
-        item.innerHTML = '<strong>event</strong> · ' + escapeHtml(JSON.stringify(data));
-      }
-
-      logEl.appendChild(item);
-      logEl.scrollTop = logEl.scrollHeight;
-    }
-
-    function setSelectedFile(file) {
-      selectedFile = file;
-      if (fileName) {
-        fileName.textContent = file ? file.name + ' · ' + (file.size / 1024).toFixed(1) + ' KB' : 'No file selected';
-      }
-      if (scanBtn) scanBtn.disabled = !file;
-    }
-
-    async function warmup() {
-      setServerState('warming', 'waking server');
-      try {
-        var controller = new AbortController();
-        var timeout = window.setTimeout(function () { controller.abort(); }, 18000);
-        var response = await fetch(API_BASE + '/ping', { signal: controller.signal, cache: 'no-store' });
-        window.clearTimeout(timeout);
+    fetch(API_BASE + '/ping', { cache: 'no-store' })
+      .then(function (response) {
         if (!response.ok) throw new Error('HTTP ' + response.status);
         setServerState('ready', 'server ready');
-      } catch (error) {
-        setServerState('error', 'server asleep');
-      }
+      })
+      .catch(function () { setServerState('error', 'server asleep'); });
+  }
+
+  function runSelfTests() {
+    var failures = [];
+    try {
+      var remainder = parseSseBuffer('data: {"type":"status"}' + EVENT_BREAK + 'data: {"type":"done"}' + EVENT_BREAK, function (payload) {
+        JSON.parse(payload);
+      });
+      if (remainder !== '') failures.push('SSE parser should leave empty remainder for complete events.');
+      if (escapeHtml('<x>') !== '&lt;x&gt;') failures.push('HTML escaping failed.');
+      if (!cursor) failures.push('Cursor element missing.');
+      if (!floatingPreview) failures.push('Floating preview element missing.');
+    } catch (error) {
+      failures.push(error.message);
     }
+    if (window.console && failures.length) console.error('Laocoon self-tests failed:', failures);
+    else if (window.console) console.log('Laocoon self-tests passed.');
+  }
 
-    if (fileInput) {
-      fileInput.addEventListener('change', function () {
-        setSelectedFile(fileInput.files && fileInput.files[0] ? fileInput.files[0] : null);
-      }, false);
-    }
+  document.onmousemove = onMove;
+  window.onmousemove = onMove;
+  document.addEventListener('mousemove', onMove, false);
+  document.addEventListener('pointermove', onMove, false);
+  document.addEventListener('mouseenter', function (event) { if (event) setMouse(event.clientX || mouseX, event.clientY || mouseY); if (cursor) cursor.style.opacity = '0.985'; }, false);
+  document.addEventListener('mouseleave', function () { if (cursor) cursor.style.opacity = '0'; }, false);
 
-    if (dropzone) {
-      dropzone.addEventListener('dragenter', function (event) {
-        event.preventDefault();
-        dropzone.classList.add('drag');
-      }, false);
+  window.addEventListener('scroll', function () {
+    var now = new Date().getTime();
+    var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+    var dy = y - lastScrollY;
+    var dt = now - lastScrollTime;
+    if (dt < 16) dt = 16;
+    var velocity = dy / dt;
+    spinVelocity += velocity * 9.5;
+    if (spinVelocity > 24) spinVelocity = 24;
+    if (spinVelocity < -24) spinVelocity = -24;
+    lastScrollY = y;
+    lastScrollTime = now;
+  }, false);
 
-      dropzone.addEventListener('dragover', function (event) {
-        event.preventDefault();
-        dropzone.classList.add('drag');
-      }, false);
+  window.addEventListener('mousedown', function () { if (cursor) cursor.classList.add('click'); }, false);
+  window.addEventListener('mouseup', function () { if (cursor) cursor.classList.remove('click'); }, false);
 
-      dropzone.addEventListener('dragleave', function (event) {
-        event.preventDefault();
-        dropzone.classList.remove('drag');
-      }, false);
+  if (fileInput) {
+    fileInput.addEventListener('change', function () {
+      setSelectedFile(fileInput.files && fileInput.files[0] ? fileInput.files[0] : null);
+    }, false);
+  }
 
-      dropzone.addEventListener('drop', function (event) {
-        event.preventDefault();
-        dropzone.classList.remove('drag');
-        var file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0] ? event.dataTransfer.files[0] : null;
-        if (!file) return;
-        try { fileInput.files = event.dataTransfer.files; } catch (e) {}
-        setSelectedFile(file);
-      }, false);
+  if (dropzone) {
+    dropzone.addEventListener('dragenter', function (event) { event.preventDefault(); dropzone.classList.add('drag'); }, false);
+    dropzone.addEventListener('dragover', function (event) { event.preventDefault(); dropzone.classList.add('drag'); }, false);
+    dropzone.addEventListener('dragleave', function (event) { event.preventDefault(); dropzone.classList.remove('drag'); }, false);
+    dropzone.addEventListener('drop', function (event) {
+      event.preventDefault();
+      dropzone.classList.remove('drag');
+      var file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0] ? event.dataTransfer.files[0] : null;
+      if (!file) return;
+      try { fileInput.files = event.dataTransfer.files; } catch (ignore) {}
+      setSelectedFile(file);
+    }, false);
 
-      dropzone.addEventListener('submit', async function (event) {
-        event.preventDefault();
-        if (!selectedFile) return;
+    dropzone.addEventListener('submit', function (event) {
+      event.preventDefault();
+      if (!selectedFile || !window.fetch) return;
 
-        scanBtn.disabled = true;
-        results.classList.add('show');
-        logEl.innerHTML = '';
-        summaryText.textContent = 'scanning';
-        addEventLine({ type: 'status', message: 'uploading ' + selectedFile.name });
+      scanBtn.disabled = true;
+      results.classList.add('show');
+      logEl.innerHTML = '';
+      summaryText.textContent = 'scanning';
+      addEventLine({ type: 'status', message: 'uploading ' + selectedFile.name });
 
-        var formData = new FormData();
-        formData.append('file', selectedFile);
+      var formData = new FormData();
+      formData.append('file', selectedFile);
 
-        try {
-          var response = await fetch(API_BASE + '/scan', { method: 'POST', body: formData });
+      fetch(API_BASE + '/scan', { method: 'POST', body: formData })
+        .then(function (response) {
           if (!response.ok || !response.body) throw new Error('scan failed: HTTP ' + response.status);
-
           var reader = response.body.getReader();
           var decoder = new TextDecoder();
           var buffer = '';
 
-          while (true) {
-            var readResult = await reader.read();
-            if (readResult.done) break;
-
-            buffer += decoder.decode(readResult.value, { stream: true });
-            var chunks = buffer.split('
-
-');
-            buffer = chunks.pop() || '';
-
-            for (var i = 0; i < chunks.length; i++) {
-              var lines = chunks[i].split('
-');
-              var line = null;
-              for (var j = 0; j < lines.length; j++) {
-                if (lines[j].indexOf('data:') === 0) line = lines[j];
-              }
-              if (!line) continue;
-              try { addEventLine(JSON.parse(line.slice(5).trim())); }
-              catch (e) { addEventLine({ type: 'status', message: line.slice(5).trim() }); }
-            }
+          function handlePayload(payload) {
+            try { addEventLine(JSON.parse(payload)); }
+            catch (err) { addEventLine({ type: 'status', message: payload }); }
           }
-        } catch (error) {
+
+          function readChunk() {
+            return reader.read().then(function (readResult) {
+              if (readResult.done) return;
+              buffer += decoder.decode(readResult.value, { stream: true });
+              buffer = parseSseBuffer(buffer, handlePayload);
+              return readChunk();
+            });
+          }
+
+          return readChunk();
+        })
+        .catch(function (error) {
           addEventLine({ type: 'error', message: error.message });
           if (summaryText) summaryText.textContent = 'failed';
-        } finally {
+        })
+        .then(function () {
           scanBtn.disabled = false;
-        }
-      }, false);
-    }
+        });
+    }, false);
+  }
 
-    addHoverTargets();
-    animateCursor();
-    warmup();
+  addHoverTargets();
+  runSelfTests();
+  cursorLoop();
+  previewLoop();
+  warmup();
+}());
   </script>
 </body>
 </html>
