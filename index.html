@@ -331,8 +331,17 @@
       transition: transform .25s var(--ease), border-color .25s, box-shadow .25s;
     }
     .dropzone:hover, .dropzone.drag { transform:translateY(-4px); border-color:rgba(255,255,255,.42); box-shadow:0 22px 54px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.09); }
-    .dropzone input { display: none; }
-    .drop-inner { position:relative; z-index:2; padding:30px; }
+    /* Input covers entire dropzone so clicking anywhere opens file picker */
+    .dropzone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: none !important;
+      z-index: 1;
+    }
+    .drop-inner { position:relative; z-index:2; padding:30px; pointer-events:none; }
 
     /* Glass orb in dropzone */
     .scanner-orb {
@@ -375,6 +384,8 @@
       font-family: var(--body);
       font-size: 13px;
       cursor: none;
+      position: relative;
+      z-index: 3; /* above the file input overlay (z-index:1) */
       transition: transform .22s var(--ease), border-color .22s, box-shadow .22s;
     }
     button:hover, .file-label:hover { transform:translateY(-2px); border-color:rgba(255,255,255,.30); box-shadow:0 16px 38px rgba(0,0,0,.28); }
@@ -725,10 +736,9 @@
           <div class="drop-inner">
             <div class="scanner-orb"></div>
             <h3>Drop file here</h3>
-            <p>or click to browse — no account required.</p>
+            <p>or click anywhere here to browse — no account required.</p>
             <div class="drop-actions">
-              <label class="file-label" for="fileInput">Choose file</label>
-              <button type="button" id="scanBtn" disabled>Run scan</button>
+              <button type="button" id="scanBtn" disabled style="pointer-events:auto;">Run scan</button>
             </div>
             <div class="file-name" id="fileName">No file selected</div>
           </div>
@@ -944,7 +954,10 @@
     if (scanBtn)    scanBtn.disabled = !file;
   }
 
+  var _ignoringChange = false; /* flag to suppress change event on programmatic file set */
+
   fileInput.addEventListener('change', function () {
+    if (_ignoringChange) return;
     setFile(fileInput.files && fileInput.files[0] ? fileInput.files[0] : null);
   });
 
@@ -955,13 +968,17 @@
     e.preventDefault(); dropzoneEl.classList.remove('drag');
     var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
     if (!f) return;
+    /* suppress the change event that fires when we assign .files */
+    _ignoringChange = true;
     try { fileInput.files = e.dataTransfer.files; } catch (ex) {}
+    _ignoringChange = false;
     setFile(f);
   });
 
-  /* Single scan trigger — button click only, no form submit */
+  /* Single scan trigger — button click only, guard against re-entry */
   if (scanBtn) {
-    scanBtn.addEventListener('click', function () {
+    scanBtn.addEventListener('click', function (e) {
+      e.stopPropagation(); /* prevent click bubbling to file input below */
       if (selectedFile && !activeScan) startScan(selectedFile);
     });
   }
