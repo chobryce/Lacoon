@@ -411,12 +411,182 @@
     .results.show { display: block; }
     .results-head { padding: 15px 17px; border-bottom: 1px solid rgba(255,255,255,.075); display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--faint); font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
     #log { max-height: 360px; overflow: auto; padding: 13px; display: grid; gap: 9px; font-family: var(--mono); font-size: 11px; line-height: 1.65; }
-    .event { border: 1px solid rgba(255,255,255,.075); border-radius: 15px; padding: 10px 12px; color: var(--muted); background: rgba(255,255,255,.026); }
+    .event {
+      border: 1px solid rgba(255,255,255,.075);
+      border-radius: 15px;
+      padding: 12px 14px;
+      color: var(--muted);
+      background: rgba(255,255,255,.026);
+      display: grid;
+      gap: 9px;
+    }
+
+    .event-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
     .event strong { color: #fff; font-weight: 500; }
-    .event.critical { border-color: rgba(255,88,114,.34); }
-    .event.high { border-color: rgba(246,182,80,.34); }
-    .event.medium { border-color: rgba(246,214,80,.30); }
-    .event.clean { border-color: rgba(53,230,160,.30); }
+
+    .sev-pill {
+      font-size: 10px;
+      letter-spacing: .12em;
+      font-family: var(--mono);
+      text-transform: uppercase;
+      padding: 5px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.045);
+      white-space: nowrap;
+    }
+
+    .severity-meter {
+      position: relative;
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255,255,255,.065);
+      box-shadow: inset 0 1px 2px rgba(0,0,0,.42);
+    }
+
+    .severity-meter span {
+      display: block;
+      height: 100%;
+      width: var(--risk-width, 12%);
+      border-radius: inherit;
+      background: linear-gradient(90deg, #35e6a0 0%, #d7d86a 38%, #f6b650 68%, #ff5872 100%);
+      box-shadow: 0 0 16px rgba(246,182,80,.18);
+    }
+
+    .event-details {
+      color: rgba(238,236,229,.58);
+      font-size: 10px;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+
+    .finding-card {
+      border: 1px solid rgba(255,255,255,.085);
+      border-radius: 17px;
+      overflow: hidden;
+      background: rgba(255,255,255,.024);
+      box-shadow: 0 18px 44px rgba(0,0,0,.18);
+    }
+
+    .finding-card.critical { border-color: rgba(255,88,114,.55); box-shadow: 0 0 34px rgba(255,88,114,.09); }
+    .finding-card.high { border-color: rgba(246,126,80,.48); box-shadow: 0 0 30px rgba(246,126,80,.08); }
+    .finding-card.medium { border-color: rgba(246,182,80,.46); box-shadow: 0 0 28px rgba(246,182,80,.08); }
+    .finding-card.low { border-color: rgba(124,211,148,.32); }
+    .finding-card.info { border-color: rgba(139,207,255,.28); }
+
+    .finding-header {
+      width: 100%;
+      border: 0;
+      border-radius: 0;
+      padding: 14px;
+      background: linear-gradient(135deg, rgba(255,255,255,.055), rgba(255,255,255,.016));
+      color: var(--muted);
+      display: grid;
+      gap: 10px;
+      text-align: left;
+      box-shadow: none;
+    }
+
+    .finding-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .finding-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: rgba(255,255,255,.9);
+    }
+
+    .finding-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--faint);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .05em;
+    }
+
+    .chevron {
+      color: var(--faint);
+      transition: transform .22s var(--ease);
+      flex-shrink: 0;
+    }
+
+    .finding-card.expanded .chevron { transform: rotate(180deg); }
+
+    .finding-body {
+      display: none;
+      border-top: 1px solid rgba(255,255,255,.075);
+      background: rgba(0,0,0,.16);
+    }
+
+    .finding-card.expanded .finding-body { display: block; }
+
+    .finding-row {
+      display: grid;
+      grid-template-columns: 132px minmax(0, 1fr);
+      gap: 14px;
+      padding: 12px 14px;
+      border-top: 1px solid rgba(255,255,255,.055);
+    }
+
+    .finding-row:first-child { border-top: 0; }
+
+    .finding-row-label {
+      color: var(--faint);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .finding-row-value {
+      color: rgba(238,236,229,.76);
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.65;
+      overflow-wrap: anywhere;
+    }
+
+    .code-snippet {
+      margin-top: 6px;
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.28);
+      color: rgba(255,255,255,.82);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .event.critical { border-color: rgba(255,88,114,.55); box-shadow: 0 0 26px rgba(255,88,114,.08); }
+    .event.critical .sev-pill, .finding-card.critical .sev-pill { color: #ff8aa0; border-color: rgba(255,88,114,.38); }
+    .event.high { border-color: rgba(246,126,80,.48); box-shadow: 0 0 24px rgba(246,126,80,.07); }
+    .event.high .sev-pill, .finding-card.high .sev-pill { color: #ffad82; border-color: rgba(246,126,80,.34); }
+    .event.medium { border-color: rgba(246,182,80,.46); box-shadow: 0 0 22px rgba(246,182,80,.07); }
+    .event.medium .sev-pill, .finding-card.medium .sev-pill { color: var(--gold2); border-color: rgba(246,182,80,.34); }
+    .event.low { border-color: rgba(124,211,148,.32); }
+    .event.low .sev-pill, .finding-card.low .sev-pill { color: #90e7b0; }
+    .event.info { border-color: rgba(139,207,255,.28); }
+    .event.info .sev-pill, .finding-card.info .sev-pill { color: #a9dcff; }
+    .event.clean { border-color: rgba(53,230,160,.34); box-shadow: 0 0 22px rgba(53,230,160,.06); }
+    .event.clean .sev-pill { color: #7cf5bf; border-color: rgba(53,230,160,.28); }
 
     .quote { margin-top: 38px; border-radius: 22px; border: 1px solid rgba(255,255,255,.14); background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.02)); box-shadow: inset 0 1px 0 rgba(255,255,255,.11), 0 22px 58px rgba(0,0,0,.28); padding: 34px 46px; display: grid; grid-template-columns: 90px 1fr 250px; align-items: center; gap: 22px; }
     .quote-mark { font-family: var(--grand); font-size: 64px; color: rgba(255,255,255,.32); }
@@ -533,7 +703,10 @@
 (function () {
   'use strict';
 
-  var API_BASE = 'https://lacooon-api.onrender.com';
+  var API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:8000'
+    : 'https://lacooon-api.onrender.com';
+
   var LF = String.fromCharCode(10);
   var EVENT_BREAK = LF + LF;
 
@@ -551,24 +724,41 @@
   var floatingPreview = document.querySelector('.floating-preview');
 
   var selectedFile = null;
+  var activeScan = null;
+
   var mouseX = window.innerWidth / 2;
   var mouseY = window.innerHeight / 2;
   var cursorX = mouseX;
   var cursorY = mouseY;
-  var started = false;
+  var cursorStarted = false;
 
   var spin = 0;
   var spinVelocity = 0;
   var drift = 0;
   var tilt = 0;
   var lastScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
-  var lastScrollTime = new Date().getTime();
+  var lastScrollTime = Date.now();
+
+  function fmtBytes(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+    return (n / 1048576).toFixed(1) + ' MB';
+  }
+
+  function escHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
 
   function setMouse(x, y) {
     mouseX = x;
     mouseY = y;
-    if (!started) {
-      started = true;
+    if (!cursorStarted) {
+      cursorStarted = true;
       cursorX = x;
       cursorY = y;
       if (cursor) cursor.style.opacity = '0.985';
@@ -631,76 +821,229 @@
     serverText.textContent = text;
   }
 
-  function escapeHtml(value) {
-    return String(value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/\"/g, '&quot;')
-      .replace(/'/g, '&#039;');
+  function normalizeSeverity(value) {
+    var sev = String(value || 'INFO').toUpperCase();
+    if (sev === 'CRITICAL' || sev === 'HIGH' || sev === 'MEDIUM' || sev === 'LOW' || sev === 'INFO') return sev;
+    return 'INFO';
   }
 
-  function nested(obj, key1, key2, fallback) {
-    if (!obj || !obj[key1]) return fallback;
-    if (typeof key2 === 'undefined') return obj[key1];
-    if (!obj[key1][key2]) return fallback;
-    return obj[key1][key2];
+  function severityClass(value) {
+    return normalizeSeverity(value).toLowerCase();
   }
 
-  function addEventLine(data) {
-    if (!logEl) return;
-    var item = document.createElement('div');
-    var severity = String(data.highest_severity || data.severity || nested(data, 'result', 'highest_severity', '')).toLowerCase();
-    item.className = 'event ' + severity;
+  function severityWidth(value) {
+    var sev = normalizeSeverity(value);
+    if (sev === 'CRITICAL') return 100;
+    if (sev === 'HIGH') return 78;
+    if (sev === 'MEDIUM') return 58;
+    if (sev === 'LOW') return 34;
+    return 16;
+  }
 
-    if (data.type === 'status') {
-      item.innerHTML = '<strong>status</strong> · ' + escapeHtml(data.message || data.phase || 'working');
-    } else if (data.type === 'finding') {
-      var pkg = data.package || data.name || nested(data, 'result', 'package', 'package');
-      var sev = data.highest_severity || data.severity || nested(data, 'result', 'highest_severity', 'INFO');
-      var count = 0;
-      if (typeof data.finding_count !== 'undefined') count = data.finding_count;
-      else if (data.findings && data.findings.length) count = data.findings.length;
-      else count = nested(data, 'result', 'finding_count', 0);
-      item.innerHTML = '<strong>' + escapeHtml(pkg) + '</strong> · ' + escapeHtml(sev) + ' · ' + count + ' finding' + (count === 1 ? '' : 's');
-    } else if (data.type === 'summary') {
-      var flagged = typeof data.flagged !== 'undefined' ? data.flagged : (data.total_findings || 0);
-      var total = typeof data.total !== 'undefined' ? data.total : (data.scanned || '?');
-      if (summaryText) summaryText.textContent = flagged + ' flagged / ' + total + ' scanned';
-      item.classList.add(flagged ? 'high' : 'clean');
-      item.innerHTML = '<strong>summary</strong> · ' + escapeHtml(JSON.stringify(data));
-    } else if (data.type === 'done') {
-      item.classList.add('clean');
-      item.innerHTML = '<strong>done</strong> · scan stream closed';
-    } else if (data.type === 'error') {
-      item.classList.add('critical');
-      item.innerHTML = '<strong>error</strong> · ' + escapeHtml(data.message || 'scan failed');
-    } else {
-      item.innerHTML = '<strong>event</strong> · ' + escapeHtml(JSON.stringify(data));
+  function findHighestFromFindings(findings) {
+    var order = { INFO: 0, LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 };
+    var best = 'INFO';
+    if (!findings || !findings.length) return best;
+    for (var i = 0; i < findings.length; i += 1) {
+      var sev = normalizeSeverity(findings[i].severity || findings[i].highest_severity);
+      if (order[sev] > order[best]) best = sev;
+    }
+    return best;
+  }
+
+  function categoryFromFinding(finding) {
+    return finding.category || finding.rule_name || finding.rule_id || finding.type || finding.kind || 'flagged behavior';
+  }
+
+  function concernFromFinding(finding) {
+    if (finding.description) return finding.description;
+    if (finding.message) return finding.message;
+    if (finding.reason) return finding.reason;
+    if (finding.title) return finding.title;
+    return 'This pattern was flagged by Laocoon because it may indicate suspicious behavior.';
+  }
+
+  function evidenceFromFinding(finding) {
+    return finding.evidence || finding.code || finding.snippet || finding.match || finding.line || finding.source || '';
+  }
+
+  function explainFinding(finding) {
+    var category = String(categoryFromFinding(finding)).toLowerCase();
+    if (category.indexOf('crypto') >= 0 || category.indexOf('wallet') >= 0) return 'This may indicate cryptocurrency wallet targeting, key theft, or unauthorized crypto-related access.';
+    if (category.indexOf('credential') >= 0 || category.indexOf('token') >= 0 || category.indexOf('secret') >= 0) return 'This may indicate credential harvesting, API token access, or secret exfiltration.';
+    if (category.indexOf('exec') >= 0 || category.indexOf('subprocess') >= 0 || category.indexOf('eval') >= 0) return 'This may indicate arbitrary code execution or command execution risk.';
+    if (category.indexOf('network') >= 0 || category.indexOf('http') >= 0 || category.indexOf('exfil') >= 0) return 'This may indicate outbound network behavior, data exfiltration, or contact with suspicious infrastructure.';
+    if (category.indexOf('obfus') >= 0 || category.indexOf('encoded') >= 0 || category.indexOf('base64') >= 0) return 'This may indicate obfuscated or encoded payloads designed to hide behavior from reviewers.';
+    if (category.indexOf('install') >= 0 || category.indexOf('postinstall') >= 0) return 'This may indicate install-time execution, a common supply-chain attack technique.';
+    return 'Review this signal manually to determine whether it is malicious, risky, or expected behavior.';
+  }
+
+  function findingRows(pkg) {
+    var findings = pkg.findings || [];
+    var advisoryUrls = pkg.advisory_urls || [];
+    if (!findings.length) {
+      return '<div class="finding-row"><div class="finding-row-label">details</div><div class="finding-row-value">No detailed finding objects were returned by the backend.</div></div>';
     }
 
+    var html = '';
+    for (var i = 0; i < findings.length; i += 1) {
+      var f = findings[i] || {};
+      var evidence = evidenceFromFinding(f);
+      html += '<div class="finding-row"><div class="finding-row-label">category</div><div class="finding-row-value"><span class="finding-rule-id">' + escHtml(f.rule_id || f.id || 'rule') + '</span>' + escHtml(categoryFromFinding(f)) + '</div></div>';
+      html += '<div class="finding-row"><div class="finding-row-label">concern</div><div class="finding-row-value">' + escHtml(concernFromFinding(f)) + '</div></div>';
+      if (evidence) {
+        html += '<div class="finding-row"><div class="finding-row-label">code section</div><div class="finding-row-value"><div class="code-snippet">' + escHtml(String(evidence).slice(0, 900)) + '</div></div></div>';
+      }
+      html += '<div class="finding-row"><div class="finding-row-label">explanation</div><div class="finding-row-value">' + escHtml(explainFinding(f)) + '</div></div>';
+    }
+
+    if (advisoryUrls.length) {
+      var links = '';
+      for (var j = 0; j < Math.min(3, advisoryUrls.length); j += 1) {
+        links += '<a class="advisory-link" href="' + escHtml(advisoryUrls[j]) + '" target="_blank" rel="noopener">' + escHtml(advisoryUrls[j]) + '</a><br>';
+      }
+      html += '<div class="finding-row"><div class="finding-row-label">advisory</div><div class="finding-row-value">' + links + '</div></div>';
+    }
+
+    return html;
+  }
+
+  function addStatus(message, kind) {
+    if (!logEl) return;
+    var item = document.createElement('div');
+    var sev = kind === 'error' ? 'CRITICAL' : 'INFO';
+    item.className = 'event ' + (kind === 'error' ? 'critical' : 'info');
+    item.innerHTML = '<div class="event-top"><div><strong>' + (kind === 'error' ? 'error' : 'status') + '</strong> · ' + escHtml(message) + '</div><span class="sev-pill">' + sev + '</span></div>' + (kind === 'error' ? '<div class="severity-meter" style="--risk-width:100%"><span></span></div>' : '');
     logEl.appendChild(item);
     logEl.scrollTop = logEl.scrollHeight;
   }
 
+  function addFinding(pkg) {
+    if (!logEl || !pkg) return;
+
+    var findings = pkg.findings || [];
+    var sev = normalizeSeverity(pkg.highest_severity || pkg.severity || findHighestFromFindings(findings));
+    var cls = severityClass(sev);
+    var width = severityWidth(sev);
+    var name = pkg.package || pkg.name || pkg.file_path || pkg.filename || 'file';
+    var version = pkg.version ? ' · ' + pkg.version : '';
+    var count = findings.length;
+    var id = 'finding-' + Math.random().toString(36).slice(2);
+
+    var wrapper = document.createElement('div');
+    wrapper.innerHTML = '<div class="finding-card ' + cls + '" id="' + id + '">' +
+      '<button class="finding-header" type="button" data-card="' + id + '">' +
+        '<div class="finding-title-row"><div class="finding-name"><strong>' + escHtml(name) + '</strong>' + escHtml(version) + '</div><span class="sev-pill">' + escHtml(sev) + '</span></div>' +
+        '<div class="severity-meter" style="--risk-width:' + width + '%"><span></span></div>' +
+        '<div class="finding-meta"><span>' + count + ' finding' + (count === 1 ? '' : 's') + '</span><span>click to inspect categories</span><span class="chevron">⌄</span></div>' +
+      '</button>' +
+      '<div class="finding-body">' + findingRows(pkg) + '</div>' +
+    '</div>';
+
+    var card = wrapper.firstChild;
+    var header = card.querySelector('.finding-header');
+    header.addEventListener('click', function () { card.classList.toggle('expanded'); }, false);
+    logEl.appendChild(card);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setSummary(total, flagged, findings, clean) {
+    if (summaryText) summaryText.textContent = flagged + ' flagged / ' + total + ' scanned';
+    addStatus(clean ? 'No malicious files detected.' : flagged + ' item(s) flagged across ' + findings + ' finding(s).', clean ? 'status' : 'error');
+  }
+
   function setSelectedFile(file) {
     selectedFile = file;
-    if (fileName) fileName.textContent = file ? file.name + ' · ' + (file.size / 1024).toFixed(1) + ' KB' : 'No file selected';
+    if (fileName) fileName.textContent = file ? file.name + ' · ' + fmtBytes(file.size) : 'No file selected';
     if (scanBtn) scanBtn.disabled = !file;
   }
 
-  function parseSseBuffer(buffer, onEvent) {
-    var chunks = buffer.split(EVENT_BREAK);
-    var remainder = chunks.pop() || '';
-    for (var i = 0; i < chunks.length; i += 1) {
-      var lines = chunks[i].split(LF);
+  function parseSseBuffer(buffer, onPayload) {
+    var parts = buffer.split(EVENT_BREAK);
+    var remainder = parts.pop() || '';
+    for (var i = 0; i < parts.length; i += 1) {
+      var lines = parts[i].split(LF);
       var payload = null;
       for (var j = 0; j < lines.length; j += 1) {
         if (lines[j].indexOf('data:') === 0) payload = lines[j].slice(5).trim();
       }
-      if (payload) onEvent(payload);
+      if (payload) onPayload(payload);
     }
     return remainder;
+  }
+
+  function handlePayload(payload) {
+    var type = payload.type;
+    if (type === 'status') {
+      addStatus(payload.message || payload.phase || 'working');
+      if (summaryText) summaryText.textContent = payload.phase || 'scanning';
+    } else if (type === 'finding') {
+      addFinding(payload.package || payload.result || payload.finding || payload);
+    } else if (type === 'summary') {
+      setSummary(payload.total || 0, payload.flagged || 0, payload.total_findings || 0, payload.clean !== false && (payload.flagged || 0) === 0);
+    } else if (type === 'error') {
+      addStatus(payload.message || 'scan failed', 'error');
+      if (summaryText) summaryText.textContent = 'failed';
+    } else if (type === 'done') {
+      addStatus('scan stream closed');
+    }
+  }
+
+  function startScan(file) {
+    if (!file || !window.fetch) return;
+    if (activeScan && activeScan.abort) activeScan.abort();
+
+    var controller = window.AbortController ? new AbortController() : null;
+    activeScan = controller;
+
+    if (results) results.classList.add('show');
+    if (logEl) logEl.innerHTML = '';
+    if (summaryText) summaryText.textContent = 'scanning';
+    if (scanBtn) scanBtn.disabled = true;
+    addStatus('uploading ' + file.name);
+
+    var body = new FormData();
+    body.append('file', file, file.name);
+
+    var options = { method: 'POST', body: body };
+    if (controller) options.signal = controller.signal;
+
+    fetch(API_BASE + '/scan', options)
+      .then(function (resp) {
+        if (!resp.ok) {
+          return resp.text().then(function (text) {
+            throw new Error('scan failed: HTTP ' + resp.status + ' — ' + (text || resp.statusText || 'server error').slice(0, 180));
+          });
+        }
+        if (!resp.body || !resp.body.getReader) throw new Error('streaming response unavailable');
+
+        var reader = resp.body.getReader();
+        var decoder = new TextDecoder();
+        var buffer = '';
+
+        function readChunk() {
+          return reader.read().then(function (result) {
+            if (result.done) return;
+            buffer += decoder.decode(result.value, { stream: true });
+            buffer = parseSseBuffer(buffer, function (raw) {
+              try { handlePayload(JSON.parse(raw)); }
+              catch (err) { addStatus(raw); }
+            });
+            return readChunk();
+          });
+        }
+
+        return readChunk();
+      })
+      .catch(function (error) {
+        if (error && error.name === 'AbortError') return;
+        addStatus(error && error.message ? error.message : 'Failed to fetch', 'error');
+        if (summaryText) summaryText.textContent = 'failed';
+      })
+      .then(function () {
+        activeScan = null;
+        if (scanBtn) scanBtn.disabled = false;
+      });
   }
 
   function warmup() {
@@ -717,23 +1060,6 @@
       .catch(function () { setServerState('error', 'server asleep'); });
   }
 
-  function runSelfTests() {
-    var failures = [];
-    try {
-      var remainder = parseSseBuffer('data: {"type":"status"}' + EVENT_BREAK + 'data: {"type":"done"}' + EVENT_BREAK, function (payload) {
-        JSON.parse(payload);
-      });
-      if (remainder !== '') failures.push('SSE parser should leave empty remainder for complete events.');
-      if (escapeHtml('<x>') !== '&lt;x&gt;') failures.push('HTML escaping failed.');
-      if (!cursor) failures.push('Cursor element missing.');
-      if (!floatingPreview) failures.push('Floating preview element missing.');
-    } catch (error) {
-      failures.push(error.message);
-    }
-    if (window.console && failures.length) console.error('Laocoon self-tests failed:', failures);
-    else if (window.console) console.log('Laocoon self-tests passed.');
-  }
-
   document.onmousemove = onMove;
   window.onmousemove = onMove;
   document.addEventListener('mousemove', onMove, false);
@@ -742,7 +1068,7 @@
   document.addEventListener('mouseleave', function () { if (cursor) cursor.style.opacity = '0'; }, false);
 
   window.addEventListener('scroll', function () {
-    var now = new Date().getTime();
+    var now = Date.now();
     var y = window.pageYOffset || document.documentElement.scrollTop || 0;
     var dy = y - lastScrollY;
     var dt = now - lastScrollTime;
@@ -779,52 +1105,11 @@
 
     dropzone.addEventListener('submit', function (event) {
       event.preventDefault();
-      if (!selectedFile || !window.fetch) return;
-
-      scanBtn.disabled = true;
-      results.classList.add('show');
-      logEl.innerHTML = '';
-      summaryText.textContent = 'scanning';
-      addEventLine({ type: 'status', message: 'uploading ' + selectedFile.name });
-
-      var formData = new FormData();
-      formData.append('file', selectedFile);
-
-      fetch(API_BASE + '/scan', { method: 'POST', body: formData })
-        .then(function (response) {
-          if (!response.ok || !response.body) throw new Error('scan failed: HTTP ' + response.status);
-          var reader = response.body.getReader();
-          var decoder = new TextDecoder();
-          var buffer = '';
-
-          function handlePayload(payload) {
-            try { addEventLine(JSON.parse(payload)); }
-            catch (err) { addEventLine({ type: 'status', message: payload }); }
-          }
-
-          function readChunk() {
-            return reader.read().then(function (readResult) {
-              if (readResult.done) return;
-              buffer += decoder.decode(readResult.value, { stream: true });
-              buffer = parseSseBuffer(buffer, handlePayload);
-              return readChunk();
-            });
-          }
-
-          return readChunk();
-        })
-        .catch(function (error) {
-          addEventLine({ type: 'error', message: error.message });
-          if (summaryText) summaryText.textContent = 'failed';
-        })
-        .then(function () {
-          scanBtn.disabled = false;
-        });
+      startScan(selectedFile);
     }, false);
   }
 
   addHoverTargets();
-  runSelfTests();
   cursorLoop();
   previewLoop();
   warmup();
