@@ -319,9 +319,11 @@
     .formats span::before { content:'◇'; color:var(--gold2); margin-right:9px; }
 
     /* ── Drop zone ──────────────────────────────────────────────────── */
+    .dropzone-wrap { display: grid; gap: 10px; }
+
     .dropzone {
       position: relative;
-      min-height: 260px;
+      min-height: 210px;
       display: grid; place-items: center;
       text-align: center;
       border-radius: 20px;
@@ -330,67 +332,74 @@
       overflow: hidden;
       transition: transform .25s var(--ease), border-color .25s, box-shadow .25s;
     }
-    .dropzone:hover, .dropzone.drag { transform:translateY(-4px); border-color:rgba(255,255,255,.42); box-shadow:0 22px 54px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.09); }
-    /* Input covers entire dropzone so clicking anywhere opens file picker */
+    .dropzone:hover, .dropzone.drag {
+      transform: translateY(-3px);
+      border-color: rgba(255,255,255,.42);
+      box-shadow: 0 18px 48px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.09);
+    }
+    /* File input covers only the drop zone, not the scan button row */
     .dropzone input[type="file"] {
       position: absolute;
       inset: 0;
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       opacity: 0;
       cursor: none !important;
       z-index: 1;
     }
-    .drop-inner { position:relative; z-index:2; padding:30px; pointer-events:none; }
+    .drop-inner {
+      position: relative;
+      z-index: 2;
+      padding: 28px 30px;
+      pointer-events: none; /* let clicks fall to the input beneath */
+    }
 
-    /* Glass orb in dropzone */
-    .scanner-orb {
-      width: 90px; height: 90px;
+    /* ── Upload arrow icon ─────────────────────────────────────────── */
+    .upload-arrow {
+      width: 52px; height: 52px;
       margin: 0 auto 16px;
-      border-radius: 50%;
-      position: relative;
-      overflow: hidden;
-      background:
-        radial-gradient(circle at 30% 22%, rgba(255,255,255,.97) 0 6%, rgba(255,255,255,.50) 12%, transparent 28%),
-        radial-gradient(ellipse at 65% 26%, rgba(255,255,255,.55), transparent 16%),
-        radial-gradient(circle at 50% 50%, rgba(255,255,255,.10), rgba(255,255,255,.03) 38%, rgba(175,220,240,.06) 62%),
-        linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,.03));
-      border: 1px solid rgba(255,255,255,.55);
-      box-shadow:
-        inset 12px 14px 22px rgba(255,255,255,.30),
-        inset -16px -22px 30px rgba(8,20,30,.30),
-        inset 0 0 30px rgba(255,255,255,.08),
-        0 0 0 1px rgba(255,255,255,.05),
-        0 0 28px rgba(255,255,255,.16),
-        0 0 60px rgba(145,210,255,.08);
-      backdrop-filter: blur(4px) brightness(1.32) contrast(1.14) saturate(1.40);
-      animation: orbPulse 4s ease-in-out infinite;
-    }
-    .scanner-orb::before { content:''; position:absolute; top:11px; left:16px; width:30px; height:14px; border-radius:50%; background:linear-gradient(135deg,rgba(255,255,255,.88),rgba(255,255,255,.12)); filter:blur(1px); transform:rotate(-22deg); opacity:.85; }
-    .scanner-orb::after { content:''; position:absolute; left:-15%; right:-15%; top:43%; height:16px; border-radius:999px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.48),rgba(139,204,255,.30),rgba(255,255,255,.36),transparent); transform:rotate(-5deg); }
-    @keyframes orbPulse { 0%,100%{filter:brightness(1) saturate(1)} 50%{filter:brightness(1.12) saturate(1.07)} }
-
-    .dropzone h3 { font-family:var(--title); font-style:italic; font-size:22px; font-weight:500; margin-bottom:7px; }
-    .dropzone p { color:var(--muted); font-size:12px; line-height:1.7; }
-    .drop-actions { margin-top:20px; display:flex; align-items:center; justify-content:center; gap:11px; flex-wrap:wrap; }
-
-    button, .file-label {
-      appearance: none;
+      display: grid; place-items: center;
+      border-radius: 16px;
       border: 1px solid rgba(255,255,255,.18);
-      border-radius: 10px;
-      padding: 12px 17px;
-      color: var(--ink);
-      background: radial-gradient(circle at 10% 0%, rgba(255,255,255,.16), transparent 44%), linear-gradient(135deg, rgba(255,255,255,.09), rgba(255,255,255,.028));
-      font-family: var(--body);
-      font-size: 13px;
-      cursor: none;
-      position: relative;
-      z-index: 3; /* above the file input overlay (z-index:1) */
-      transition: transform .22s var(--ease), border-color .22s, box-shadow .22s;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255,255,255,.18), transparent 60%),
+        linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.03));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.20),
+        0 8px 24px rgba(0,0,0,.36),
+        0 0 0 1px rgba(255,255,255,.04);
+      animation: arrowFloat 3.2s ease-in-out infinite;
     }
-    button:hover, .file-label:hover { transform:translateY(-2px); border-color:rgba(255,255,255,.30); box-shadow:0 16px 38px rgba(0,0,0,.28); }
-    button:disabled { opacity:.38; transform:none; box-shadow:none; cursor:none; }
-    .file-name { margin-top:12px; color:var(--faint); font-family:var(--mono); font-size:10px; word-break:break-all; }
+    .upload-arrow svg { display: block; }
+    @keyframes arrowFloat {
+      0%, 100% { transform: translateY(0px); }
+      50%       { transform: translateY(-5px); }
+    }
+
+    .dropzone h3 {
+      font-family: var(--title);
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 5px;
+      letter-spacing: -.02em;
+    }
+    .dropzone p { color: var(--muted); font-size: 11.5px; line-height: 1.6; }
+    .file-name { color: var(--faint); font-family: var(--mono); font-size: 10px; word-break: break-all; }
+
+    /* ── Scan action row — OUTSIDE the dropzone ─────────────────────── */
+    .scan-action-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .file-name-display {
+      flex: 1;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--faint);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
 
     /* ── Results log ────────────────────────────────────────────────── */
     .results { display:none; margin-top:16px; border-radius:18px; overflow:hidden; border:1px solid rgba(255,255,255,.09); background:rgba(3,5,8,.52); }
