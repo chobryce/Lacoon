@@ -743,15 +743,22 @@
         <form class="dropzone" id="dropzone">
           <input id="fileInput" type="file" accept=".json,.txt,.toml,.py,.pyw,.js,.mjs,.cjs,.ts,.tsx,.jsx,.log,.conf,.cfg" />
           <div class="drop-inner">
-            <div class="scanner-orb"></div>
-            <h3>Drop file here</h3>
-            <p>or click anywhere here to browse — no account required.</p>
-            <div class="drop-actions">
-              <button type="button" id="scanBtn" disabled style="pointer-events:auto;">Run scan</button>
+            <div class="upload-arrow">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 3L12 15" stroke="rgba(255,255,255,0.82)" stroke-width="1.6" stroke-linecap="round"/>
+                <path d="M7 8L12 3L17 8" stroke="rgba(255,255,255,0.82)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M4 17V19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19V17" stroke="rgba(255,255,255,0.42)" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
             </div>
-            <div class="file-name" id="fileName">No file selected</div>
+            <h3>Drop or Enter File Here</h3>
+            <p>Click anywhere to browse — no account required.</p>
           </div>
         </form>
+
+        <div class="scan-action-row" style="margin-top:10px;">
+          <span class="file-name-display" id="fileName">No file selected</span>
+          <button type="button" id="scanBtn" disabled>Run scan</button>
+        </div>
 
         <div class="results" id="results">
           <div class="results-head">
@@ -1096,12 +1103,10 @@
   };
 
   function setSummary(total, flagged, findings, clean) {
-    if (summaryText) summaryText.textContent = flagged + ' flagged / ' + total + ' scanned';
-    if (clean) {
-      addStatus('No malicious packages detected.', 'status');
-    } else {
-      addStatus(flagged + ' package(s) flagged · ' + findings + ' total finding(s).', 'error');
-    }
+    if (summaryText) summaryText.textContent = clean
+      ? 'clean ✓'
+      : flagged + ' flagged / ' + total + ' scanned';
+    /* no addStatus call here — the finding cards already show the results */
   }
 
   /* ── SSE parser (same as old index.html) ─────────────────────────── */
@@ -1229,7 +1234,7 @@
 
   /* ── Dynamic copyright year ──────────────────────────────────────── */
   var copyrightEl = document.getElementById('copyrightLine');
-  if (copyrightEl) copyrightEl.textContent = '\u00a9 ' + new Date().getFullYear() + ' \uc870\uc900\ud64d · Bryce Cho';
+  if (copyrightEl) copyrightEl.textContent = '\u00a9 ' + new Date().getFullYear() + ' \uc870\uc900\ud64d';
 }());
   </script>
 </body>
