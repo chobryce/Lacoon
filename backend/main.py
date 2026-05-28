@@ -758,6 +758,12 @@ async def scan(request: Request, file: UploadFile = File(...)):
 
                     yield sse({"type": "done"})
                     return
+                    
+                yield sse({
+                    "type": "error",
+                    "message": "Unsupported or unrecognized file type."
+                })
+                return
             
             except Exception as e:
                 import traceback
