@@ -61,7 +61,9 @@ app.add_middleware(
 )
 
 
-MAX_FILE_BYTES = 2 * 1024 * 1024
+MAX_FILE_BYTES = 250 * 1024  # 250 KB
+MAX_TEXT_CHARS = 300_000
+SCAN_TIMEOUT_SECONDS = 45
 
 MANIFEST_EXACT_NAMES = {
     "package.json",
@@ -669,7 +671,22 @@ async def scan(request: Request, file: UploadFile = File(...)):
                         "message": "Detected source code. Running static malware-oriented source analysis..."
                     })
 
-                    result = scan_source_file(tmp_path, filename, data)
+                    try:
+                        result = await asyncio.wait_for(
+                            asyncio.to_thread(
+                                scan_source_file,
+                                tmp_path,
+                                filename,
+                                data
+                            ),
+                            timeout=SCAN_TIMEOUT_SECONDS
+                        )
+                    except asyncio.TimeoutError:
+                        yield sse({
+                            "type": "error",
+                            "message": "Scan timed out safely. File may be extremely complex or obfuscated."
+                        })
+                        return
 
                     yield sse({
                         "type": "finding",
