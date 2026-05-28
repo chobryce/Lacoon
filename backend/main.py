@@ -758,7 +758,8 @@ async def scan(request: Request, file: UploadFile = File(...)):
 
                     yield sse({"type": "done"})
                     return
-            except (ValueError, TypeError, OSError) as e:
+            
+            except Exception as e:
                 import traceback
                 log.error(f"Scan failed for {filename}: {e}")
                 print(traceback.format_exc())  # shows full error in Render logs
