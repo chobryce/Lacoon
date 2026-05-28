@@ -9,82 +9,130 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&family=Prata&display=swap" rel="stylesheet" />
+
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; cursor: none !important; }
+
     :root {
       color-scheme: dark;
-      --bg:#04060a; --ink:#f7f4ed; --muted:rgba(238,236,229,.72); --faint:rgba(238,236,229,.38);
-      --gold:#e4c28b; --gold2:#f2d9aa; --blue:#8bcfff; --green:#35e6a0; --amber:#f6b650; --red:#ff5872;
-      --mono:'DM Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-      --title:'Playfair Display', Georgia, serif; --grand:'Prata', Georgia, serif;
-      --body:'Merriweather', Georgia, serif; --hand:'Caveat', cursive;
-      --ease:cubic-bezier(.2,.8,.2,1);
+      --bg:    #04060a;
+      --ink:   #f7f4ed;
+      --muted: rgba(238,236,229,.72);
+      --faint: rgba(238,236,229,.38);
+      --gold:  #e4c28b;
+      --gold2: #f2d9aa;
+      --blue:  #8bcfff;
+      --green: #35e6a0;
+      --amber: #f6b650;
+      --red:   #ff5872;
+      --mono:  'DM Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --title: 'Playfair Display', Georgia, serif;
+      --grand: 'Prata', Georgia, serif;
+      --body:  'Merriweather', Georgia, serif;
+      --hand:  'Caveat', cursive;
+      --ease:  cubic-bezier(.2,.8,.2,1);
     }
+
     html { scroll-behavior: smooth; }
+
     body {
-      min-height:100vh; overflow-x:hidden; color:var(--ink); font-family:var(--body);
-      background: radial-gradient(circle at 68% 8%, rgba(165,210,255,.16), transparent 22rem),
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: var(--ink);
+      font-family: var(--body);
+      background:
+        radial-gradient(circle at 68% 8%,  rgba(165,210,255,.16), transparent 22rem),
         radial-gradient(circle at 18% 18%, rgba(255,255,255,.09), transparent 23rem),
-        radial-gradient(circle at 82% 52%, rgba(95,165,255,.09), transparent 28rem),
-        radial-gradient(circle at 0% 78%, rgba(228,194,139,.07), transparent 28rem),
+        radial-gradient(circle at 82% 52%, rgba(95,165,255,.09),  transparent 28rem),
+        radial-gradient(circle at 0%  78%, rgba(228,194,139,.07), transparent 28rem),
         linear-gradient(180deg, #08111b 0%, #05070a 44%, #030406 100%);
       -webkit-font-smoothing: antialiased;
     }
-    body::after { content:''; position:fixed; inset:0; z-index:9999; pointer-events:none; opacity:.022; mix-blend-mode:overlay;
-      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
-    ::selection { background:rgba(228,194,139,.28); color:#fff; }
+
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: .022;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    ::selection { background: rgba(228,194,139,.28); color: #fff; }
 
     #cursor {
-      position:fixed; inset:0; z-index:2147483647; width:100vw; height:100vh;
-      display:block; pointer-events:none; opacity:0; transition:opacity .18s ease;
-      filter:drop-shadow(0 10px 28px rgba(0,0,0,.42)) drop-shadow(0 0 18px rgba(150,220,255,.14));
+      position: fixed;
+      inset: 0;
+      z-index: 2147483647;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .22s ease;
+      will-change: opacity;
+      filter:
+        drop-shadow(0 10px 28px rgba(0,0,0,.42))
+        drop-shadow(0 0 18px rgba(150,220,255,.14));
     }
+    #cursor.hover { opacity: 1; }
+    #cursor.click { opacity: 1; }
     #cursor.cursor-fallback {
-      width:54px; height:54px; inset:auto; border-radius:50%; transform:translate(-50%,-50%);
-      background:radial-gradient(circle at 30% 20%, rgba(255,255,255,.95), rgba(255,255,255,.25) 12%, transparent 23%),
+      width: 54px;
+      height: 54px;
+      inset: auto;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255,255,255,.95), rgba(255,255,255,.25) 12%, transparent 23%),
         radial-gradient(circle at 68% 72%, rgba(35,200,255,.36), transparent 35%),
         radial-gradient(circle at 50% 50%, rgba(210,245,255,.20), rgba(60,170,220,.10) 52%, rgba(255,255,255,.34) 84%, rgba(40,190,255,.16) 100%);
-      box-shadow:inset 0 0 16px rgba(255,255,255,.28), inset -10px -14px 28px rgba(0,70,120,.22), 0 0 22px rgba(120,220,255,.28);
+      box-shadow: inset 0 0 16px rgba(255,255,255,.28), inset -10px -14px 28px rgba(0,70,120,.22), 0 0 22px rgba(120,220,255,.28);
+      transform: translate(-50%, -50%);
     }
 
-    .page { position:relative; z-index:2; width:min(1180px, calc(100% - 48px)); margin:0 auto; padding-bottom:80px; }
-    .topbar { height:96px; display:flex; align-items:center; justify-content:space-between; gap:24px; }
-    .brand { display:flex; align-items:center; gap:14px; }
-    .sigil { width:38px; height:38px; border-radius:13px; border:1px solid rgba(255,255,255,.22); background:linear-gradient(145deg,rgba(255,255,255,.20),rgba(255,255,255,.04)); box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 12px 30px rgba(0,0,0,.36); display:grid; place-items:center; }
-    .sigil span { font-family:var(--grand); font-size:22px; color:#f4e3bf; }
-    .brand-title { font-family:var(--grand); font-size:26px; letter-spacing:.08em; text-transform:uppercase; text-shadow:0 1px 0 rgba(255,255,255,.18),0 6px 20px rgba(0,0,0,.44); }
-    .brand-sub { margin-top:5px; font-family:var(--mono); font-size:9px; letter-spacing:.26em; color:var(--muted); text-transform:uppercase; }
-    .navlinks { display:flex; align-items:center; gap:clamp(16px,3vw,40px); color:var(--muted); font-size:13px; }
-    .navlinks a { color:inherit; text-decoration:none; transition:color .2s,transform .2s; }
-    .navlinks a:hover { color:#fff; transform:translateY(-1px); }
-    .status-pill { display:inline-flex; align-items:center; gap:9px; padding:9px 14px; border-radius:999px; border:1px solid rgba(255,255,255,.13); color:rgba(255,255,255,.7); font-family:var(--mono); font-size:10px; background:linear-gradient(135deg,rgba(255,255,255,.07),rgba(255,255,255,.016)); box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 12px 30px rgba(0,0,0,.22); backdrop-filter:blur(20px) saturate(160%); white-space:nowrap; }
-    .dot { width:7px; height:7px; border-radius:50%; background:var(--amber); box-shadow:0 0 12px var(--amber); animation:blink 1.2s ease-in-out infinite; }
-    .dot.ready { background:var(--green); box-shadow:0 0 12px var(--green); animation:none; }
-    .dot.error { background:var(--red); box-shadow:0 0 12px var(--red); animation:none; }
+    .page { position: relative; z-index: 2; width: min(1180px, calc(100% - 48px)); margin: 0 auto; padding-bottom: 80px; }
+    .topbar { height: 96px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .sigil { width: 38px; height: 38px; border-radius: 13px; border: 1px solid rgba(255,255,255,.22); background: linear-gradient(145deg, rgba(255,255,255,.20), rgba(255,255,255,.04)); box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 12px 30px rgba(0,0,0,.36); display: grid; place-items: center; }
+    .sigil span { font-family: var(--grand); font-size: 22px; color: #f4e3bf; }
+    .brand-title { font-family: var(--grand); font-size: 26px; letter-spacing: .08em; text-transform: uppercase; text-shadow: 0 1px 0 rgba(255,255,255,.18), 0 6px 20px rgba(0,0,0,.44); }
+    .brand-sub { margin-top: 5px; font-family: var(--mono); font-size: 9px; letter-spacing: .26em; color: var(--muted); text-transform: uppercase; }
+    .navlinks { display: flex; align-items: center; gap: clamp(16px, 3vw, 40px); color: var(--muted); font-family: var(--body); font-size: 13px; }
+    .navlinks a { color: inherit; text-decoration: none; transition: color .2s, transform .2s; }
+    .navlinks a:hover { color: #fff; transform: translateY(-1px); }
+    .status-pill { display: inline-flex; align-items: center; gap: 9px; padding: 9px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.13); color: rgba(255,255,255,.7); font-family: var(--mono); font-size: 10px; background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.016)); box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 12px 30px rgba(0,0,0,.22); backdrop-filter: blur(20px) saturate(160%); white-space: nowrap; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 12px var(--amber); animation: blink 1.2s ease-in-out infinite; }
+    .dot.ready { background: var(--green); box-shadow: 0 0 12px var(--green); animation: none; }
+    .dot.error { background: var(--red); box-shadow: 0 0 12px var(--red); animation: none; }
     @keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
 
-    .hero { min-height:calc(100vh - 104px); display:grid; grid-template-columns:minmax(0,1fr) minmax(380px,480px); gap:52px; align-items:center; padding:20px 0 56px; }
-    .eyebrow { margin-bottom:18px; color:var(--gold2); font-family:var(--mono); font-size:10px; letter-spacing:.17em; text-transform:uppercase; }
-    h1 { font-family:var(--title); font-size:clamp(52px,7.4vw,92px); font-weight:500; line-height:.96; letter-spacing:-.07em; color:rgba(255,255,255,.96); text-shadow:0 1px 0 rgba(255,255,255,.30),0 2px 0 rgba(255,255,255,.10),0 4px 8px rgba(0,0,0,.60),0 8px 20px rgba(0,0,0,.50),0 0 40px rgba(255,255,255,.06); }
-    h1 .italic { display:block; font-style:italic; font-weight:600; background:linear-gradient(135deg,#fff6e0 0%,#d9a85a 48%,#f7e0b8 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 6px 12px rgba(0,0,0,.42)); }
-    .lead { margin-top:26px; max-width:600px; color:var(--muted); font-size:14.5px; line-height:2.0; font-weight:300; }
-    .lead em { font-family:var(--title); font-style:italic; color:#fff; font-weight:600; }
-    .cta-row { margin-top:30px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
-    .button-glass { position:relative; overflow:hidden; min-width:210px; padding:15px 22px; border-radius:13px; display:flex; align-items:center; justify-content:space-between; border:1px solid rgba(255,255,255,.22); background:radial-gradient(circle at 0% 0%,rgba(255,255,255,.20),transparent 44%),linear-gradient(135deg,rgba(255,255,255,.11),rgba(255,255,255,.032)); box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 16px 40px rgba(0,0,0,.30); backdrop-filter:blur(24px) saturate(155%); color:var(--ink); text-decoration:none; font-size:14px; transition:transform .22s var(--ease),border-color .22s,box-shadow .22s; }
-    .button-glass span:last-child { font-family:var(--mono); color:var(--gold2); }
-    .button-glass:hover { transform:translateY(-3px); border-color:rgba(255,255,255,.34); box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 22px 54px rgba(0,0,0,.38); }
-    .text-link { padding:12px 0; border-bottom:1px solid rgba(228,194,139,.55); color:rgba(255,255,255,.82); text-decoration:none; font-size:14px; transition:transform .22s var(--ease),color .2s; }
-    .text-link:hover { transform:translateY(-2px); color:#fff; }
+    .hero { min-height: calc(100vh - 104px); display: grid; grid-template-columns: minmax(0,1fr) minmax(380px,480px); gap: 52px; align-items: center; padding: 20px 0 56px; }
+    .eyebrow { margin-bottom: 18px; color: var(--gold2); font-family: var(--mono); font-size: 10px; letter-spacing: .17em; text-transform: uppercase; }
+    h1 { font-family: var(--title); font-size: clamp(52px,7.4vw,92px); font-weight: 500; line-height: .96; letter-spacing: -.07em; color: rgba(255,255,255,.96); text-shadow: 0 1px 0 rgba(255,255,255,.30), 0 2px 0 rgba(255,255,255,.10), 0 4px 8px rgba(0,0,0,.60), 0 8px 20px rgba(0,0,0,.50), 0 0 40px rgba(255,255,255,.06); }
+    h1 .italic { display: block; font-style: italic; font-weight: 600; background: linear-gradient(135deg, #fff6e0 0%, #d9a85a 48%, #f7e0b8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 6px 12px rgba(0,0,0,.42)); }
+    .lead { margin-top: 26px; max-width: 600px; color: var(--muted); font-size: 14.5px; line-height: 2.0; font-weight: 300; }
+    .lead em { font-family: var(--title); font-style: italic; color: #fff; font-weight: 600; }
+    .cta-row { margin-top: 30px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+    .button-glass { position: relative; overflow: hidden; min-width: 210px; padding: 15px 22px; border-radius: 13px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(255,255,255,.22); background: radial-gradient(circle at 0% 0%, rgba(255,255,255,.20), transparent 44%), linear-gradient(135deg, rgba(255,255,255,.11), rgba(255,255,255,.032)); box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 16px 40px rgba(0,0,0,.30); backdrop-filter: blur(24px) saturate(155%); color: var(--ink); text-decoration: none; font-family: var(--body); font-size: 14px; transition: transform .22s var(--ease), border-color .22s, box-shadow .22s; }
+    .button-glass span:last-child { font-family: var(--mono); color: var(--gold2); }
+    .button-glass:hover { transform: translateY(-3px); border-color: rgba(255,255,255,.34); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 22px 54px rgba(0,0,0,.38); }
+    .button-glass::before { content:''; position:absolute; inset:-40%; background:linear-gradient(115deg,transparent 20%,rgba(255,255,255,.20) 40%,transparent 60%); transform:translateX(-60%) rotate(8deg); transition:transform .8s var(--ease); pointer-events:none; }
+    .button-glass:hover::before { transform:translateX(70%) rotate(8deg); }
+    .text-link { padding: 12px 0; border-bottom: 1px solid rgba(228,194,139,.55); color: rgba(255,255,255,.82); text-decoration: none; font-family: var(--body); font-size: 14px; transition: transform .22s var(--ease), color .2s; }
+    .text-link:hover { transform: translateY(-2px); color: #fff; }
 
-    .preview-stage { position:relative; min-height:540px; display:grid; place-items:center; perspective:1400px; }
-    .preview-glow { position:absolute; width:460px; height:460px; border-radius:50%; background:radial-gradient(circle,rgba(179,224,255,.14),transparent 60%); filter:blur(10px); pointer-events:none; }
-    .floating-preview { width:min(480px,100%); border-radius:30px; border:1px solid rgba(255,255,255,.18); border-top-color:rgba(255,255,255,.32); border-left-color:rgba(255,255,255,.24); background:radial-gradient(circle at 25% 0%,rgba(255,255,255,.20),transparent 14rem),radial-gradient(circle at 90% 65%,rgba(139,204,255,.09),transparent 13rem),linear-gradient(145deg,rgba(255,255,255,.10),rgba(255,255,255,.024)); box-shadow:inset 0 1px 0 rgba(255,255,255,.20),inset 0 -1px 0 rgba(0,0,0,.30),0 56px 110px rgba(0,0,0,.56),0 0 70px rgba(180,220,255,.12); backdrop-filter:blur(32px) saturate(175%); overflow:hidden; transform:rotateY(-10deg) rotateX(7deg); transition:transform .06s linear; animation:previewFloat 5.5s ease-in-out infinite; }
-    @keyframes previewFloat { 0%,100%{margin-top:0px} 50%{margin-top:-10px} }
-    .preview-header { height:58px; display:flex; align-items:center; justify-content:space-between; padding:0 20px; border-bottom:1px solid rgba(255,255,255,.08); font-family:var(--mono); font-size:10px; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; }
+    .preview-stage { position: relative; min-height: 540px; display: grid; place-items: center; perspective: 1400px; }
+    .preview-glow { position: absolute; width: 460px; height: 460px; border-radius: 50%; background: radial-gradient(circle,rgba(179,224,255,.14),transparent 60%); filter: blur(10px); pointer-events:none; }
+    .floating-preview { width: min(480px, 100%); border-radius: 30px; border: 1px solid rgba(255,255,255,.18); border-top-color: rgba(255,255,255,.32); border-left-color: rgba(255,255,255,.24); background: radial-gradient(circle at 25% 0%, rgba(255,255,255,.20), transparent 14rem), radial-gradient(circle at 90% 65%, rgba(139,204,255,.09), transparent 13rem), linear-gradient(145deg, rgba(255,255,255,.10), rgba(255,255,255,.024)); box-shadow: inset 0 1px 0 rgba(255,255,255,.20), inset 0 -1px 0 rgba(0,0,0,.30), 0 56px 110px rgba(0,0,0,.56), 0 0 70px rgba(180,220,255,.12); backdrop-filter: blur(32px) saturate(175%); overflow: hidden; transform: rotateY(-10deg) rotateX(7deg); transition: transform .06s linear; animation: previewFloat 5.5s ease-in-out infinite; }
+    @keyframes previewFloat { 0%,100% { margin-top: 0px; } 50% { margin-top: -10px; } }
+    .preview-header { height: 58px; display:flex; align-items:center; justify-content:space-between; padding: 0 20px; border-bottom: 1px solid rgba(255,255,255,.08); font-family:var(--mono); font-size:10px; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; }
     .lights { display:flex; gap:6px; }
     .lights i { width:8px; height:8px; border-radius:50%; }
-    .lights i:nth-child(1){background:rgba(255,88,114,.8)} .lights i:nth-child(2){background:rgba(246,182,80,.8)} .lights i:nth-child(3){background:rgba(53,230,160,.8)}
-    .preview-body { padding:20px; display:grid; gap:14px; }
+    .lights i:nth-child(1) { background:rgba(255,88,114,.8); }
+    .lights i:nth-child(2) { background:rgba(246,182,80,.8); }
+    .lights i:nth-child(3) { background:rgba(53,230,160,.8); }
+    .preview-body { padding: 20px; display:grid; gap:14px; }
     .risk-card { border-radius:18px; border:1px solid rgba(255,255,255,.09); background:rgba(2,6,10,.28); padding:16px; }
     .risk-title { display:flex; justify-content:space-between; font-family:var(--mono); font-size:10px; color:var(--faint); text-transform:uppercase; letter-spacing:.12em; margin-bottom:14px; }
     .risk-title strong { color:#fff; }
@@ -97,85 +145,74 @@
     .finding { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 13px; border-radius:15px; border:1px solid rgba(255,255,255,.07); background:rgba(255,255,255,.024); font-family:var(--mono); font-size:10px; color:var(--muted); }
     .sev-demo { color:var(--gold2); }
 
-    .benefits { margin-top:10px; border-radius:18px; border:1px solid rgba(255,255,255,.13); background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.022)); box-shadow:inset 0 1px 0 rgba(255,255,255,.11),0 22px 60px rgba(0,0,0,.32); backdrop-filter:blur(28px) saturate(165%); display:grid; grid-template-columns:repeat(4,1fr); overflow:hidden; }
+    .benefits { margin-top: 10px; border-radius:18px; border:1px solid rgba(255,255,255,.13); background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.022)); box-shadow:inset 0 1px 0 rgba(255,255,255,.11), 0 22px 60px rgba(0,0,0,.32); backdrop-filter:blur(28px) saturate(165%); display:grid; grid-template-columns:repeat(4,1fr); overflow:hidden; }
     .benefit { padding:28px 24px; display:grid; grid-template-columns:38px 1fr; gap:14px; border-right:1px solid rgba(255,255,255,.09); }
     .benefit:last-child { border-right:none; }
     .benefit-icon { color:var(--gold2); font-family:var(--mono); font-size:22px; }
-    .benefit h3 { font-family:var(--title); font-size:17px; font-weight:600; margin-bottom:6px; text-shadow:0 1px 0 rgba(255,255,255,.18),0 4px 12px rgba(0,0,0,.50); }
+    .benefit h3 { font-family:var(--title); font-size:17px; font-weight:600; margin-bottom:6px; text-shadow: 0 1px 0 rgba(255,255,255,.18), 0 4px 12px rgba(0,0,0,.50); }
     .benefit p { color:var(--muted); font-size:11.5px; line-height:1.7; font-weight:300; }
-
     .section { margin-top:68px; }
     .section-grid { display:grid; grid-template-columns:300px 1fr; gap:44px; align-items:start; }
     .section-kicker { color:var(--gold2); font-family:var(--mono); font-size:10px; letter-spacing:.22em; text-transform:uppercase; margin-bottom:16px; }
-    .section-title { font-family:var(--title); font-size:clamp(32px,4vw,50px); font-weight:500; line-height:1.06; letter-spacing:-.05em; text-shadow:0 1px 0 rgba(255,255,255,.24),0 5px 14px rgba(0,0,0,.44); }
+    .section-title { font-family:var(--title); font-size:clamp(32px,4vw,50px); font-weight:500; line-height:1.06; letter-spacing:-.05em; text-shadow: 0 1px 0 rgba(255,255,255,.24), 0 5px 14px rgba(0,0,0,.44); }
     .section-title em { color:var(--gold2); font-style:italic; }
     .section-copy { margin-top:16px; color:var(--muted); font-size:13px; line-height:1.9; font-weight:300; }
     .cards { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:13px; }
-    .feature-card { min-height:200px; padding:22px; border-radius:16px; border:1px solid rgba(255,255,255,.12); background:linear-gradient(145deg,rgba(255,255,255,.066),rgba(255,255,255,.018)); box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 18px 50px rgba(0,0,0,.25); backdrop-filter:blur(26px) saturate(155%); transition:transform .24s var(--ease),border-color .24s; }
+    .feature-card { min-height:200px; padding:22px; border-radius:16px; border:1px solid rgba(255,255,255,.12); background:linear-gradient(145deg,rgba(255,255,255,.066),rgba(255,255,255,.018)); box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 18px 50px rgba(0,0,0,.25); backdrop-filter:blur(26px) saturate(155%); transition:transform .24s var(--ease), border-color .24s; }
     .feature-card:hover { transform:translateY(-6px); border-color:rgba(255,255,255,.24); }
     .feature-icon { width:42px; height:42px; border-radius:13px; display:grid; place-items:center; margin-bottom:26px; color:var(--gold2); font-family:var(--mono); font-size:20px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); }
-    .feature-card h3 { font-family:var(--title); font-size:16px; font-weight:600; margin-bottom:9px; text-shadow:0 1px 0 rgba(255,255,255,.18),0 4px 10px rgba(0,0,0,.50); }
+    .feature-card h3 { font-family:var(--title); font-size:16px; font-weight:600; margin-bottom:9px; text-shadow: 0 1px 0 rgba(255,255,255,.18), 0 4px 10px rgba(0,0,0,.50); }
     .feature-card p { color:var(--muted); font-size:12px; line-height:1.75; font-weight:300; }
-
-    .scan-shell { margin-top:50px; border-radius:24px; border:1px solid rgba(255,255,255,.16); background:radial-gradient(circle at 12% 0%,rgba(255,255,255,.14),transparent 17rem),radial-gradient(circle at 100% 0%,rgba(155,215,255,.10),transparent 20rem),linear-gradient(145deg,rgba(255,255,255,.082),rgba(255,255,255,.016)); box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 26px 76px rgba(0,0,0,.36); backdrop-filter:blur(32px) saturate(170%); padding:32px; display:grid; grid-template-columns:290px 1fr; gap:32px; }
-    .scan-intro h2 { font-family:var(--title); font-weight:500; font-size:32px; line-height:1.12; letter-spacing:-.05em; margin-bottom:16px; text-shadow:0 1px 0 rgba(255,255,255,.22),0 5px 14px rgba(0,0,0,.46); }
+    .scan-shell { margin-top: 50px; border-radius: 24px; border: 1px solid rgba(255,255,255,.16); background: radial-gradient(circle at 12% 0%, rgba(255,255,255,.14), transparent 17rem), radial-gradient(circle at 100% 0%, rgba(155,215,255,.10), transparent 20rem), linear-gradient(145deg, rgba(255,255,255,.082), rgba(255,255,255,.016)); box-shadow: inset 0 1px 0 rgba(255,255,255,.13), 0 26px 76px rgba(0,0,0,.36); backdrop-filter: blur(32px) saturate(170%); padding: 32px; display: grid; grid-template-columns: 290px 1fr; gap: 32px; }
+    .scan-intro h2 { font-family:var(--title); font-weight:500; font-size:32px; line-height:1.12; letter-spacing:-.05em; margin-bottom:16px; text-shadow: 0 1px 0 rgba(255,255,255,.22), 0 5px 14px rgba(0,0,0,.46); }
     .scan-intro h2 em { color:var(--gold2); font-style:italic; }
     .scan-intro p { color:var(--muted); font-size:13px; line-height:1.85; font-weight:300; }
     .formats { margin-top:22px; display:grid; gap:9px; color:var(--muted); font-family:var(--mono); font-size:11px; }
     .formats span::before { content:'◇'; color:var(--gold2); margin-right:9px; }
-    .dropzone { position:relative; min-height:210px; display:grid; place-items:center; text-align:center; border-radius:20px; border:1px dashed rgba(255,255,255,.22); background:rgba(5,9,14,.34); overflow:hidden; transition:transform .25s var(--ease),border-color .25s,box-shadow .25s; }
-    .dropzone:hover,.dropzone.drag { transform:translateY(-3px); border-color:rgba(255,255,255,.42); box-shadow:0 18px 48px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.09); }
-    .dropzone input[type="file"] { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:none !important; z-index:1; }
-    .drop-inner { position:relative; z-index:2; padding:28px 30px; pointer-events:none; }
-    .upload-arrow { width:52px; height:52px; margin:0 auto 16px; display:grid; place-items:center; border-radius:16px; border:1px solid rgba(255,255,255,.18); background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.18),transparent 60%),linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.03)); box-shadow:inset 0 1px 0 rgba(255,255,255,.20),0 8px 24px rgba(0,0,0,.36),0 0 0 1px rgba(255,255,255,.04); animation:arrowFloat 3.2s ease-in-out infinite; }
-    .upload-arrow svg { display:block; }
-    @keyframes arrowFloat { 0%,100%{transform:translateY(0px)} 50%{transform:translateY(-5px)} }
-    .dropzone h3 { font-family:var(--title); font-size:18px; font-weight:500; margin-bottom:5px; letter-spacing:-.02em; }
-    .dropzone p { color:var(--muted); font-size:11.5px; line-height:1.6; }
-    .scan-action-row { display:flex; align-items:center; gap:12px; }
-    .file-name-display { flex:1; font-family:var(--mono); font-size:11px; color:var(--faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    button { appearance:none; border:1px solid rgba(255,255,255,.18); border-radius:10px; padding:12px 17px; color:var(--ink); background:radial-gradient(circle at 10% 0%,rgba(255,255,255,.16),transparent 44%),linear-gradient(135deg,rgba(255,255,255,.09),rgba(255,255,255,.028)); font-family:var(--body); font-size:13px; cursor:none; position:relative; z-index:3; transition:transform .22s var(--ease),border-color .22s,box-shadow .22s; }
-    button:hover { transform:translateY(-2px); border-color:rgba(255,255,255,.30); box-shadow:0 16px 38px rgba(0,0,0,.28); }
-    button:disabled { opacity:.38; transform:none; box-shadow:none; cursor:none; }
+    .dropzone { position: relative; min-height: 210px; display: grid; place-items: center; text-align: center; border-radius: 20px; border: 1px dashed rgba(255,255,255,.22); background: rgba(5,9,14,.34); overflow: hidden; transition: transform .25s var(--ease), border-color .25s, box-shadow .25s; }
+    .dropzone:hover, .dropzone.drag { transform: translateY(-3px); border-color: rgba(255,255,255,.42); box-shadow: 0 18px 48px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.09); }
+    .dropzone input[type="file"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: none !important; z-index: 1; }
+    .drop-inner { position: relative; z-index: 2; padding: 28px 30px; pointer-events: none; }
+    .upload-arrow { width: 52px; height: 52px; margin: 0 auto 16px; display: grid; place-items: center; border-radius: 16px; border: 1px solid rgba(255,255,255,.18); background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.18), transparent 60%), linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.03)); box-shadow: inset 0 1px 0 rgba(255,255,255,.20), 0 8px 24px rgba(0,0,0,.36), 0 0 0 1px rgba(255,255,255,.04); animation: arrowFloat 3.2s ease-in-out infinite; }
+    .upload-arrow svg { display: block; }
+    @keyframes arrowFloat { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-5px); } }
+    .dropzone h3 { font-family: var(--title); font-size: 18px; font-weight: 500; margin-bottom: 5px; letter-spacing: -.02em; }
+    .dropzone p { color: var(--muted); font-size: 11.5px; line-height: 1.6; }
+    .scan-action-row { display: flex; align-items: center; gap: 12px; }
+    .file-name-display { flex: 1; font-family: var(--mono); font-size: 11px; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .results { display:none; margin-top:16px; border-radius:18px; overflow:hidden; border:1px solid rgba(255,255,255,.09); background:rgba(3,5,8,.52); }
     .results.show { display:block; }
     .results-head { padding:14px 16px; border-bottom:1px solid rgba(255,255,255,.07); display:flex; align-items:center; justify-content:space-between; gap:12px; color:var(--faint); font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
     #log { max-height:380px; overflow:auto; padding:12px; display:grid; gap:8px; font-family:var(--mono); font-size:11px; line-height:1.6; }
-    .event, .finding-card { border:1px solid rgba(255,255,255,.08); border-radius:13px; padding:11px 13px; color:var(--muted); background:rgba(255,255,255,.024); display:grid; gap:8px; }
+    .event, .finding-card { border: 1px solid rgba(255,255,255,.08); border-radius: 13px; padding: 11px 13px; color: var(--muted); background: rgba(255,255,255,.024); display: grid; gap: 8px; }
     .event-top { display:flex; align-items:center; justify-content:space-between; gap:12px; }
     .event strong { color:#fff; font-weight:500; }
-    .sev-pill { font-size:10px; letter-spacing:.12em; padding:4px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.13); background:rgba(255,255,255,.04); white-space:nowrap; flex-shrink:0; }
+    .sev-pill { font-size:10px; letter-spacing:.12em; padding: 4px 8px; border-radius: 999px; border: 1px solid rgba(255,255,255,.13); background: rgba(255,255,255,.04); white-space: nowrap; flex-shrink: 0; }
     .sev-bar { height:6px; border-radius:999px; background:rgba(255,255,255,.06); overflow:hidden; }
     .sev-bar span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#35e6a0,#d7d86a,#f6b650,#ff5872); }
-    .finding-card { padding:0; overflow:hidden; }
     .finding-header { width:100%; border:0; border-radius:0; text-align:left; padding:13px; background:linear-gradient(135deg,rgba(255,255,255,.050),rgba(255,255,255,.014)); color:var(--muted); display:grid; gap:9px; cursor:none; box-shadow:none; }
     .finding-header:hover { transform:none; border-color:transparent; box-shadow:none; background:linear-gradient(135deg,rgba(255,255,255,.07),rgba(255,255,255,.020)); }
     .finding-title-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
     .finding-name { font-family:var(--mono); font-size:11px; color:rgba(255,255,255,.9); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .finding-meta { display:flex; align-items:center; justify-content:space-between; gap:12px; color:var(--faint); font-family:var(--mono); font-size:10px; }
-    .chevron { color:var(--faint); transition:transform .22s var(--ease); flex-shrink:0; }
-    .finding-card.expanded .chevron { transform:rotate(180deg); }
     .finding-body { display:none; border-top:1px solid rgba(255,255,255,.07); background:rgba(0,0,0,.14); }
     .finding-card.expanded .finding-body { display:block; }
     .finding-row { display:grid; grid-template-columns:120px minmax(0,1fr); gap:12px; padding:11px 13px; border-top:1px solid rgba(255,255,255,.05); }
-    .finding-row:first-child { border-top:0; }
     .finding-row-label { color:var(--faint); font-family:var(--mono); font-size:10px; letter-spacing:.10em; text-transform:uppercase; }
     .finding-row-value { color:rgba(238,236,229,.76); font-family:var(--mono); font-size:11px; line-height:1.6; overflow-wrap:anywhere; }
     .code-snippet { margin-top:5px; padding:9px; border-radius:10px; border:1px solid rgba(255,255,255,.07); background:rgba(0,0,0,.26); color:rgba(255,255,255,.80); white-space:pre-wrap; overflow-wrap:anywhere; }
-    .finding-rule-id { display:inline-block; font-size:9px; padding:1px 5px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:3px; color:var(--muted); margin-right:5px; }
-    .advisory-link { color:var(--blue); text-decoration:none; font-size:11px; word-break:break-all; }
-    .advisory-link:hover { text-decoration:underline; }
-    .quote { margin-top:36px; border-radius:20px; border:1px solid rgba(255,255,255,.13); background:linear-gradient(145deg,rgba(255,255,255,.066),rgba(255,255,255,.018)); box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 20px 54px rgba(0,0,0,.26); padding:32px 44px; display:grid; grid-template-columns:80px 1fr 240px; align-items:center; gap:20px; }
+    .quote { margin-top:36px; border-radius:20px; border:1px solid rgba(255,255,255,.13); background:linear-gradient(145deg,rgba(255,255,255,.066),rgba(255,255,255,.018)); box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 20px 54px rgba(0,0,0,.26); padding:32px 44px; display:grid; grid-template-columns:80px 1fr 240px; align-items:center; gap:20px; }
     .quote-mark { font-family:var(--grand); font-size:60px; color:rgba(255,255,255,.28); }
     .quote-text { font-family:var(--title); font-style:italic; font-size:24px; color:rgba(255,255,255,.84); line-height:1.35; }
     .quote-text small { display:block; margin-top:9px; font-family:var(--mono); font-style:normal; color:var(--faint); font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
     .signature { font-family:var(--hand); font-size:38px; color:var(--gold2); text-align:right; transform:rotate(-2deg); }
     .footer { margin-top:52px; padding:32px 0 0; border-top:1px solid rgba(255,255,255,.09); display:flex; justify-content:space-between; gap:24px; color:var(--faint); font-family:var(--mono); font-size:10px; line-height:1.8; }
-    @media (max-width:1080px) { .hero{grid-template-columns:1fr} .benefits{grid-template-columns:repeat(2,1fr)} .benefit:nth-child(2){border-right:none} .section-grid,.scan-shell{grid-template-columns:1fr} .cards{grid-template-columns:repeat(2,1fr)} .quote{grid-template-columns:1fr} .signature{text-align:left} }
-    @media (max-width:720px) { html,body,a,button,label,input,*,*::before,*::after{cursor:auto !important} #cursor{display:none} .page{width:min(100% - 28px,1180px)} .topbar{height:auto;padding:22px 0;flex-direction:column;align-items:flex-start} .navlinks{display:none} h1{font-size:clamp(48px,16vw,70px)} .benefits,.cards{grid-template-columns:1fr} .benefit{border-right:none;border-bottom:1px solid rgba(255,255,255,.09)} .benefit:last-child{border-bottom:none} .scan-shell{padding:20px} .quote{padding:24px} .footer{flex-direction:column} }
+    @media (max-width:1080px) { .hero { grid-template-columns:1fr; } .benefits { grid-template-columns:repeat(2,1fr); } .benefit:nth-child(2) { border-right:none; } .section-grid, .scan-shell { grid-template-columns:1fr; } .cards { grid-template-columns:repeat(2,1fr); } .quote { grid-template-columns:1fr; } .signature { text-align:left; } }
+    @media (max-width:720px) { html,body,a,button,label,input,*,*::before,*::after { cursor:auto !important; } #cursor { display:none; } .page { width:min(100% - 28px, 1180px); } .topbar { height:auto; padding:22px 0; flex-direction:column; align-items:flex-start; } .navlinks { display:none; } h1 { font-size:clamp(48px,16vw,70px); } .benefits,.cards { grid-template-columns:1fr; } .benefit { border-right:none; border-bottom:1px solid rgba(255,255,255,.09); } .benefit:last-child { border-bottom:none; } .scan-shell { padding:20px; } .quote { padding:24px; } .footer { flex-direction:column; } }
   </style>
 </head>
 <body>
+
   <canvas id="cursor" aria-hidden="true"></canvas>
 
   <main class="page">
@@ -186,548 +223,609 @@
     </nav>
 
     <section class="hero" id="product">
-      <div>
-        <div class="eyebrow">Open source. Transparent. Relentless.</div>
-        <h1>See every file.<span class="italic">Stop every threat.</span></h1>
-        <p class="lead">Laocoon scans manifests, source code, and uploaded files against malware intelligence, OSV/GHSA advisories, static analysis, behavioral heuristics, typosquat signals, and suspicious execution patterns. <em>Know before you trust it.</em></p>
-        <div class="cta-row"><a class="button-glass" href="#scan"><span>Scan your project</span><span>&rarr;</span></a><a class="text-link" href="#how">View documentation &rarr;</a></div>
-      </div>
-      <div class="preview-stage" aria-hidden="true">
-        <div class="preview-glow"></div>
-        <div class="floating-preview" id="floatingPreview">
-          <div class="preview-header"><div class="lights"><i></i><i></i><i></i></div><span>live scan preview</span></div>
-          <div class="preview-body">
-            <div class="risk-card"><div class="risk-title"><span>risk overview</span><strong>3 critical</strong></div><div class="bar"><span></span></div><div class="mini-lines"><i></i><i></i><i></i></div></div>
-            <div class="finding-list"><div class="finding"><span>malicious-code-execution</span><span class="sev-demo">CRITICAL</span></div><div class="finding"><span>credential-exfiltration</span><span class="sev-demo">HIGH</span></div><div class="finding"><span>obfuscated-payload</span><span class="sev-demo">MEDIUM</span></div></div>
-          </div>
-        </div>
-      </div>
+      <div><div class="eyebrow">Open source. Transparent. Relentless.</div><h1>See every file.<span class="italic">Stop every threat.</span></h1><p class="lead">Laocoon scans manifests, source code, and uploaded files against malware intelligence, OSV/GHSA advisories, static analysis, behavioral heuristics, typosquat signals, and suspicious execution patterns. <em>Know before you trust it.</em></p><div class="cta-row"><a class="button-glass" href="#scan"><span>Scan your project</span><span>&rarr;</span></a><a class="text-link" href="#how">View documentation &rarr;</a></div></div>
+      <div class="preview-stage" aria-hidden="true"><div class="preview-glow"></div><div class="floating-preview" id="floatingPreview"><div class="preview-header"><div class="lights"><i></i><i></i><i></i></div><span>live scan preview</span></div><div class="preview-body"><div class="risk-card"><div class="risk-title"><span>risk overview</span><strong>3 critical</strong></div><div class="bar"><span></span></div><div class="mini-lines"><i></i><i></i><i></i></div></div><div class="finding-list"><div class="finding"><span>malicious-code-execution</span><span class="sev-demo">CRITICAL</span></div><div class="finding"><span>credential-exfiltration</span><span class="sev-demo">HIGH</span></div><div class="finding"><span>obfuscated-payload</span><span class="sev-demo">MEDIUM</span></div></div></div></div></div>
     </section>
 
-    <section class="benefits" aria-label="Product benefits">
-      <div class="benefit"><div class="benefit-icon">◇</div><div><h3>Layered Intel</h3><p>Static analysis, advisories, heuristics, and provenance checks.</p></div></div>
-      <div class="benefit"><div class="benefit-icon">◎</div><div><h3>Malware Focused</h3><p>Specialized in detecting malicious file and package behavior.</p></div></div>
-      <div class="benefit"><div class="benefit-icon">ϟ</div><div><h3>Live Streaming</h3><p>Deep scans stream live results from the FastAPI backend.</p></div></div>
-      <div class="benefit"><div class="benefit-icon">▢</div><div><h3>Privacy First</h3><p>Files processed server-side and discarded immediately.</p></div></div>
-    </section>
+    <section class="benefits" aria-label="Product benefits"><div class="benefit"><div class="benefit-icon">◇</div><div><h3>Layered Intel</h3><p>Static analysis, advisories, heuristics, and provenance checks.</p></div></div><div class="benefit"><div class="benefit-icon">◎</div><div><h3>Malware Focused</h3><p>Specialized in detecting malicious file and package behavior.</p></div></div><div class="benefit"><div class="benefit-icon">ϟ</div><div><h3>Live Streaming</h3><p>Deep scans stream live results from the FastAPI backend.</p></div></div><div class="benefit"><div class="benefit-icon">▢</div><div><h3>Privacy First</h3><p>Files processed server-side and discarded immediately.</p></div></div></section>
 
-    <section class="section" id="how">
-      <div class="section-grid">
-        <div><div class="section-kicker">How it works</div><h2 class="section-title">Layered analysis. <em>Zero blind spots.</em></h2><p class="section-copy">Laocoon combines advisory intelligence, source inspection, runtime heuristics, metadata analysis, and trust signals so suspicious files cannot quietly disappear inside modern software ecosystems.</p></div>
-        <div class="cards">
-          <article class="feature-card"><div class="feature-icon">⌘</div><h3>Advisory Intel</h3><p>Checks OSV MAL-* advisories and GHSA malware reports against every dependency.</p></article>
-          <article class="feature-card"><div class="feature-icon">&lt;/&gt;</div><h3>Static Analysis</h3><p>40+ rules inspect source, scripts, and suspicious execution paths.</p></article>
-          <article class="feature-card"><div class="feature-icon">⌖</div><h3>Behavioral Heuristics</h3><p>Metadata, install-time scripts, exfiltration, and evasion patterns.</p></article>
-          <article class="feature-card"><div class="feature-icon">⬡</div><h3>Ecosystem Defense</h3><p>Typosquatting, dependency confusion, and registry integrity checks.</p></article>
-        </div>
-      </div>
-    </section>
+    <section class="section" id="how"><div class="section-grid"><div><div class="section-kicker">How it works</div><h2 class="section-title">Layered analysis. <em>Zero blind spots.</em></h2><p class="section-copy">Laocoon combines advisory intelligence, source inspection, runtime heuristics, metadata analysis, and trust signals so suspicious files cannot quietly disappear inside modern software ecosystems.</p></div><div class="cards"><article class="feature-card"><div class="feature-icon">⌘</div><h3>Advisory Intel</h3><p>Checks OSV MAL-* advisories and GHSA malware reports against every dependency.</p></article><article class="feature-card"><div class="feature-icon">&lt;/&gt;</div><h3>Static Analysis</h3><p>40+ rules inspect source, scripts, and suspicious execution paths.</p></article><article class="feature-card"><div class="feature-icon">⌖</div><h3>Behavioral Heuristics</h3><p>Metadata, install-time scripts, exfiltration, and evasion patterns.</p></article><article class="feature-card"><div class="feature-icon">⬡</div><h3>Ecosystem Defense</h3><p>Typosquatting, dependency confusion, and registry integrity checks.</p></article></div></div></section>
 
-    <section class="scan-shell" id="scan" aria-label="Start a scan">
-      <div class="scan-intro">
-        <div class="section-kicker">Start a scan</div>
-        <h2>Drop your files. <em>We'll tell you what's dangerous.</em></h2>
-        <p>Backend streams results via Server-Sent Events. Warmup uses <code>/ping</code>, scans post to <code>/scan</code>. Results render live as findings arrive.</p>
-        <div class="formats"><span>package.json</span><span>package-lock.json</span><span>pyproject.toml</span><span>requirements.txt</span><span>.py · .js · .ts · .txt · more</span></div>
-      </div>
-      <div>
-        <form class="dropzone" id="dropzone">
-          <input id="fileInput" type="file" accept=".json,.txt,.toml,.py,.pyw,.js,.mjs,.cjs,.ts,.tsx,.jsx,.log,.conf,.cfg" />
-          <div class="drop-inner"><div class="upload-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3L12 15" stroke="rgba(255,255,255,0.82)" stroke-width="1.6" stroke-linecap="round"/><path d="M7 8L12 3L17 8" stroke="rgba(255,255,255,0.82)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17V19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19V17" stroke="rgba(255,255,255,0.42)" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Drop or Enter File Here</h3><p>Click anywhere to browse — no account required.</p></div>
-        </form>
-        <div class="scan-action-row" style="margin-top:10px;"><span class="file-name-display" id="fileName">No file selected</span><button type="button" id="scanBtn" disabled>Run scan</button></div>
-        <div class="results" id="results"><div class="results-head"><span>Scan output</span><span id="summaryText">waiting</span></div><div id="log"></div></div>
-      </div>
-    </section>
+    <section class="scan-shell" id="scan" aria-label="Start a scan"><div class="scan-intro"><div class="section-kicker">Start a scan</div><h2>Drop your files. <em>We'll tell you what's dangerous.</em></h2><p>Backend streams results via Server-Sent Events. Warmup uses <code>/ping</code>, scans post to <code>/scan</code>. Results render live as findings arrive.</p><div class="formats"><span>package.json</span><span>package-lock.json</span><span>pyproject.toml</span><span>requirements.txt</span><span>.py · .js · .ts · .txt · more</span></div></div><div><form class="dropzone" id="dropzone"><input id="fileInput" type="file" accept=".json,.txt,.toml,.py,.pyw,.js,.mjs,.cjs,.ts,.tsx,.jsx,.log,.conf,.cfg" /><div class="drop-inner"><div class="upload-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3L12 15" stroke="rgba(255,255,255,0.82)" stroke-width="1.6" stroke-linecap="round"/><path d="M7 8L12 3L17 8" stroke="rgba(255,255,255,0.82)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17V19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19V17" stroke="rgba(255,255,255,0.42)" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Drop or Enter File Here</h3><p>Click anywhere to browse — no account required.</p></div></form><div class="scan-action-row" style="margin-top:10px;"><span class="file-name-display" id="fileName">No file selected</span><button type="button" id="scanBtn" disabled>Run scan</button></div><div class="results" id="results"><div class="results-head"><span>Scan output</span><span id="summaryText">waiting</span></div><div id="log"></div></div></div></section>
 
-    <section class="quote" aria-label="Laocoon quote"><div class="quote-mark">&quot;</div><div class="quote-text">I fear the Greeks, even when they bear gifts.<small>Laocoön, priest of Troy — Virgil's Aeneid</small></div><div class="signature">— Laocoön</div></section>
+    <section class="quote" aria-label="Laocoon quote"><div class="quote-mark">"</div><div class="quote-text">I fear the Greeks, even when they bear gifts.<small>Laocoön, priest of Troy — Virgil's Aeneid</small></div><div class="signature">— Laocoön</div></section>
     <footer class="footer"><div><strong style="font-family:var(--grand);color:var(--ink);letter-spacing:.1em;font-size:18px">LAOCOON</strong><br/>Supply chain defense for people who ship.</div><div>Built for GitHub Pages + Render · FastAPI · SSE · OSV · GHSA<br/><span id="copyrightLine"></span></div></footer>
   </main>
 
-  <script type="module">
-'use strict';
+  <script>
+(function () {
+  'use strict';
 
-var API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:8000' : 'https://lacooon-api.onrender.com';
+  var API_BASE = (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1'
+  ) ? 'http://localhost:8000' : 'https://lacooon-api.onrender.com';
 
-var cursorCanvas = document.getElementById('cursor');
-var serverDot = document.getElementById('serverDot');
-var serverText = document.getElementById('serverText');
-var dropzoneEl = document.getElementById('dropzone');
-var fileInput = document.getElementById('fileInput');
-var fileNameEl = document.getElementById('fileName');
-var scanBtn = document.getElementById('scanBtn');
-var resultsEl = document.getElementById('results');
-var logEl = document.getElementById('log');
-var summaryText = document.getElementById('summaryText');
-var previewEl = document.getElementById('floatingPreview');
+  var LF = '\n';
+  var EVENT_BREAK = '\n\n';
 
-var mouseX = window.innerWidth / 2;
-var mouseY = window.innerHeight / 2;
-var cX = mouseX;
-var cY = mouseY;
-var cursorReady = false;
-var cursorHover = 0;
-var cursorClick = 0;
+  var cursorEl    = document.getElementById('cursor');
+  var serverDot   = document.getElementById('serverDot');
+  var serverText  = document.getElementById('serverText');
+  var dropzoneEl  = document.getElementById('dropzone');
+  var fileInput   = document.getElementById('fileInput');
+  var fileNameEl  = document.getElementById('fileName');
+  var scanBtn     = document.getElementById('scanBtn');
+  var resultsEl   = document.getElementById('results');
+  var logEl       = document.getElementById('log');
+  var summaryText = document.getElementById('summaryText');
+  var previewEl   = document.getElementById('floatingPreview');
 
-function setMouse(x, y) {
-  mouseX = x;
-  mouseY = y;
-  if (!cursorReady) {
-    cursorReady = true;
-    cX = x;
-    cY = y;
-    if (cursorCanvas) cursorCanvas.style.opacity = '1';
+  var selectedFile = null;
+  var activeScan = null;
+  var keepAliveTimer = null;
+
+  var mouseX = window.innerWidth / 2;
+  var mouseY = window.innerHeight / 2;
+  var cX = mouseX;
+  var cY = mouseY;
+  var pX = cX;
+  var pY = cY;
+  var cStarted = false;
+  var cursorHover = 0;
+  var cursorClick = 0;
+
+  function setMouse(x, y) {
+    mouseX = x;
+    mouseY = y;
+    if (!cStarted) {
+      cStarted = true;
+      cX = x; cY = y;
+      pX = x; pY = y;
+      if (cursorEl) cursorEl.style.opacity = '1';
+    }
   }
-}
 
-document.addEventListener('mousemove', function(e) { setMouse(e.clientX, e.clientY); }, { passive: true });
-document.addEventListener('pointermove', function(e) { setMouse(e.clientX, e.clientY); }, { passive: true });
-document.addEventListener('mouseleave', function() { if (cursorCanvas) cursorCanvas.style.opacity = '0'; });
-document.addEventListener('mouseenter', function(e) { setMouse(e.clientX || mouseX, e.clientY || mouseY); if (cursorCanvas) cursorCanvas.style.opacity = '1'; });
-document.addEventListener('mousedown', function() { if (cursorCanvas) cursorCanvas.classList.add('click'); });
-document.addEventListener('mouseup', function() { if (cursorCanvas) cursorCanvas.classList.remove('click'); });
-
-document.querySelectorAll('a,button,.dropzone,.status-pill,.feature-card,.benefit,.finding-header').forEach(function(el) {
-  el.addEventListener('mouseenter', function() { if (cursorCanvas) cursorCanvas.classList.add('hover'); });
-  el.addEventListener('mouseleave', function() { if (cursorCanvas) cursorCanvas.classList.remove('hover'); });
-});
-
-function initCssCursorFallback() {
-  if (!cursorCanvas) return;
-  cursorCanvas.classList.add('cursor-fallback');
-  function loop() {
-    cX += (mouseX - cX) * 0.45;
-    cY += (mouseY - cY) * 0.45;
-    cursorCanvas.style.left = cX + 'px';
-    cursorCanvas.style.top = cY + 'px';
-    if (cursorReady) cursorCanvas.style.opacity = '1';
-    requestAnimationFrame(loop);
+  function initCssCursorFallback() {
+    if (!cursorEl) return;
+    cursorEl.classList.add('cursor-fallback');
+    function fallbackLoop() {
+      pX = cX; pY = cY;
+      cX += (mouseX - cX) * 0.5;
+      cY += (mouseY - cY) * 0.5;
+      cursorEl.style.left = cX + 'px';
+      cursorEl.style.top = cY + 'px';
+      requestAnimationFrame(fallbackLoop);
+    }
+    requestAnimationFrame(fallbackLoop);
   }
-  loop();
-}
 
-function initLiquidGlassCursor() {
-  if (!cursorCanvas || !cursorCanvas.getContext) return Promise.resolve(false);
+  function initLiquidGlassCursor() {
+    if (!cursorEl || !cursorEl.getContext) return Promise.resolve(false);
 
-  return import('https://esm.sh/three@0.160.0').then(function(mod) {
-    var THREE = mod.default || mod;
-    var scene = new THREE.Scene();
-    var camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.01, 100);
-    camera.position.set(0, 0, 7);
+    return Promise.all([
+      import('https://esm.sh/three@0.160.0'),
+      import('https://esm.sh/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js'),
+      import('https://esm.sh/three@0.160.0/examples/jsm/postprocessing/RenderPass.js'),
+      import('https://esm.sh/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js')
+    ]).then(function (mods) {
+      var THREE = mods[0];
+      var EffectComposer = mods[1].EffectComposer;
+      var RenderPass = mods[2].RenderPass;
+      var UnrealBloomPass = mods[3].UnrealBloomPass;
 
-    var renderer = new THREE.WebGLRenderer({ canvas: cursorCanvas, alpha: true, antialias: true, powerPreference: 'high-performance', premultipliedAlpha: false });
-    renderer.setClearColor(0x000000, 0);
-    renderer.setClearAlpha(0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
-    if (THREE.ACESFilmicToneMapping) renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.24;
-    renderer.autoClear = true;
-    renderer.domElement.style.background = 'transparent';
+      var scene = new THREE.Scene();
+      var camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.01, 100);
+      camera.position.set(0, 0, 7.0);
 
-    function makeEnv() {
-      var c = document.createElement('canvas');
-      c.width = 1024;
-      c.height = 512;
-      var g = c.getContext('2d');
-      var sky = g.createLinearGradient(0, 0, 0, 220);
-      sky.addColorStop(0, '#0073d9');
-      sky.addColorStop(0.45, '#68d8ff');
-      sky.addColorStop(1, '#f6ffff');
-      g.fillStyle = sky;
-      g.fillRect(0, 0, c.width, 220);
-      var sun = g.createRadialGradient(520, 80, 0, 520, 80, 150);
-      sun.addColorStop(0, 'rgba(255,255,255,1)');
-      sun.addColorStop(0.18, 'rgba(255,245,180,.65)');
-      sun.addColorStop(1, 'rgba(255,255,255,0)');
-      g.fillStyle = sun;
-      g.fillRect(360, 0, 320, 240);
-      var water = g.createLinearGradient(0, 220, 0, 330);
-      water.addColorStop(0, '#eaffff');
-      water.addColorStop(0.25, '#20bfd8');
-      water.addColorStop(1, '#032b3e');
-      g.fillStyle = water;
-      g.fillRect(0, 220, c.width, 110);
-      for (var y = 225; y < 330; y += 5) {
-        g.strokeStyle = 'rgba(255,255,255,.20)';
-        g.lineWidth = 1;
-        g.beginPath();
-        for (var x = 0; x <= c.width; x += 12) {
-          var yy = y + Math.sin(x * 0.02 + y * 0.05) * 2;
-          if (x === 0) g.moveTo(x, yy); else g.lineTo(x, yy);
-        }
-        g.stroke();
-      }
-      var sand = g.createLinearGradient(0, 330, 0, c.height);
-      sand.addColorStop(0, '#c48751');
-      sand.addColorStop(1, '#1b0d06');
-      g.fillStyle = sand;
-      g.fillRect(0, 330, c.width, c.height - 330);
-      var tex = new THREE.CanvasTexture(c);
-      tex.mapping = THREE.EquirectangularReflectionMapping;
-      if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
-      return tex;
-    }
-
-    function makeDotTexture() {
-      var c = document.createElement('canvas');
-      c.width = 64;
-      c.height = 64;
-      var g = c.getContext('2d');
-      var rg = g.createRadialGradient(32, 32, 0, 32, 32, 30);
-      rg.addColorStop(0, 'rgba(255,255,255,1)');
-      rg.addColorStop(0.18, 'rgba(225,252,255,.96)');
-      rg.addColorStop(0.48, 'rgba(160,235,255,.58)');
-      rg.addColorStop(1, 'rgba(160,235,255,0)');
-      g.fillStyle = rg;
-      g.fillRect(0, 0, 64, 64);
-      var tex = new THREE.CanvasTexture(c);
-      if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
-      return tex;
-    }
-
-    function makeFlareTexture() {
-      var c = document.createElement('canvas');
-      c.width = c.height = 256;
-      var g = c.getContext('2d');
-      var rg = g.createRadialGradient(128, 128, 0, 128, 128, 120);
-      rg.addColorStop(0, 'rgba(255,255,255,1)');
-      rg.addColorStop(0.08, 'rgba(255,255,255,.95)');
-      rg.addColorStop(0.22, 'rgba(150,235,255,.55)');
-      rg.addColorStop(1, 'rgba(255,255,255,0)');
-      g.fillStyle = rg;
-      g.fillRect(0, 0, 256, 256);
-      g.strokeStyle = 'rgba(255,255,255,.75)';
-      g.lineWidth = 2;
-      g.beginPath(); g.moveTo(26, 128); g.lineTo(230, 128); g.stroke();
-      g.beginPath(); g.moveTo(128, 26); g.lineTo(128, 230); g.stroke();
-      var tex = new THREE.CanvasTexture(c);
-      if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
-      return tex;
-    }
-
-    var envTex = makeEnv();
-    scene.environment = envTex;
-    scene.add(new THREE.AmbientLight(0x99ddff, 1.15));
-    var key = new THREE.DirectionalLight(0xffffff, 5.2);
-    key.position.set(-3.5, 5.5, 4.5);
-    scene.add(key);
-    var cyan = new THREE.PointLight(0x46dfff, 6, 6);
-    cyan.position.set(2.2, -1.9, 2.5);
-    scene.add(cyan);
-
-    var trailGrid = new THREE.Group();
-    scene.add(trailGrid);
-    var trailSegments = [];
-    var trailCursor = 0;
-    var lastTrailX = mouseX;
-    var lastTrailY = mouseY;
-
-    function makeTrailLine() {
-      var geo = new THREE.BufferGeometry();
-      geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
-      var mat = new THREE.LineBasicMaterial({ color: 0xdffcff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false });
-      var line = new THREE.Line(geo, mat);
-      line.visible = false;
-      line.frustumCulled = false;
-      line.userData = { age: 999, life: 7, start: new THREE.Vector3(), end: new THREE.Vector3(), phase: Math.random() * Math.PI * 2 };
-      trailGrid.add(line);
-      trailSegments.push(line);
-    }
-    for (var tl = 0; tl < 360; tl++) makeTrailLine();
-
-    function activateTrailLine(x1, y1, x2, y2, z) {
-      var line = trailSegments[trailCursor++ % trailSegments.length];
-      line.userData.start.set(x1, y1, z);
-      line.userData.end.set(x2, y2, z);
-      line.userData.age = 0;
-      line.userData.life = 6.5 + Math.random() * 1.2;
-      line.userData.phase = Math.random() * Math.PI * 2;
-      line.visible = true;
-    }
-
-    function spawnTrailGrid(worldPos, dx, dy) {
-      var len = Math.sqrt(dx * dx + dy * dy);
-      if (len < 0.5) return;
-      var dirX = -dx / len;
-      var dirY = dy / len;
-      var strength = Math.min(len / 24, 1.8);
-      var cx = worldPos.x + dirX * (0.04 + strength * 0.04);
-      var cy = worldPos.y + dirY * (0.04 + strength * 0.04);
-      var spacing = 0.125;
-      var half = 0.55 + strength * 0.06;
-      var gx = Math.round(cx / spacing) * spacing;
-      var gy = Math.round(cy / spacing) * spacing;
-      var z = worldPos.z - 0.12;
-      for (var gi = -4; gi <= 4; gi++) {
-        var rowY = gy + gi * spacing;
-        activateTrailLine(gx - half, rowY, gx + half, rowY, z);
-      }
-      for (var gj = -4; gj <= 4; gj++) {
-        var colX = gx + gj * spacing;
-        activateTrailLine(colX, gy - half, colX, gy + half, z);
-      }
-    }
-
-    var orbGroup = new THREE.Group();
-    scene.add(orbGroup);
-    var sphereGeo = new THREE.SphereGeometry(0.62, 192, 192);
-
-    var glassShell = new THREE.Mesh(sphereGeo, new THREE.MeshPhysicalMaterial({
-      color: 0xe9fdff,
-      roughness: 0.002,
-      metalness: 0,
-      transmission: 1,
-      thickness: 3.4,
-      ior: 1.52,
-      transparent: true,
-      opacity: 0.48,
-      envMap: envTex,
-      envMapIntensity: 4.2,
-      clearcoat: 1,
-      clearcoatRoughness: 0.004,
-      specularIntensity: 1.8,
-      specularColor: 0xffffff,
-      depthWrite: false
-    }));
-    orbGroup.add(glassShell);
-
-    var innerWaterMat = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      uniforms: { uTime: { value: 0 }, uEnv: { value: envTex } },
-      vertexShader: 'varying vec3 vPos; varying vec3 vNormal; varying vec3 vWorld; uniform float uTime; float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);} float noise(vec3 p){vec3 i=floor(p);vec3 f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);} float fbm(vec3 p){float v=0.0;float a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=.5;}return v;} void main(){vPos=position;vNormal=normal;float fill=smoothstep(.62,-.78,position.y);float n=fbm(position*4.6+vec3(uTime*.16,-uTime*.08,uTime*.1));vec3 p=position*.955+normal*(n-.5)*.032*fill;vec4 world=modelMatrix*vec4(p,1.0);vWorld=world.xyz;gl_Position=projectionMatrix*viewMatrix*world;}',
-      fragmentShader: 'precision highp float; varying vec3 vPos; varying vec3 vNormal; varying vec3 vWorld; uniform float uTime; uniform sampler2D uEnv; vec2 envUV(vec3 d){d=normalize(d);return vec2(atan(d.z,d.x)/6.2831853+.5,asin(d.y)/3.1415926+.5);} float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);} float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);} float fbm(vec2 p){float v=0.;float a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.05;a*=.5;}return v;} void main(){vec3 V=normalize(cameraPosition-vWorld);vec3 N=normalize(vNormal+vec3((fbm(vPos.xy*6.0+uTime*.18)-.5)*.22,(fbm(vPos.yz*7.0-uTime*.14)-.5)*.18,0.0));vec3 R=reflect(-V,N);vec3 env=texture2D(uEnv,envUV(R)).rgb;float fres=pow(1.0-max(dot(N,V),0.0),2.2);float wave=vPos.y+.08*sin(vPos.x*4.4+uTime*.45)+.035*sin(vPos.z*7.0-uTime*.32);float wg=smoothstep(.64,-.74,wave);float depth=pow(clamp(wg,0.0,1.0),.78);float horizon=smoothstep(.055,0.0,abs(wave+.02*sin(vPos.x*8.0-uTime*.2)))*.45;vec3 col=mix(vec3(.78,.97,1.0),vec3(.015,.30,.58),depth*.72);col=mix(col,vec3(.18,.82,1.0),depth*(.26+.24*fres));col=mix(col,env*vec3(.62,.98,1.25),.45+.20*fres);col+=vec3(.86,1.0,1.0)*horizon+vec3(.18,.84,1.0)*fres*.82;float alpha=.34+depth*.28+fres*.34+horizon*.16;gl_FragColor=vec4(col,clamp(alpha,0.0,.86));}'
-    });
-    var innerWater = new THREE.Mesh(sphereGeo, innerWaterMat);
-    orbGroup.add(innerWater);
-
-    var rim = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ color: 0xc8f8ff, transparent: true, opacity: 0.24, blending: THREE.AdditiveBlending, side: THREE.BackSide, depthWrite: false }));
-    rim.scale.setScalar(1.035);
-    orbGroup.add(rim);
-
-    var causticMat = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      uniforms: { uTime: { value: 0 } },
-      vertexShader: 'varying vec3 vPos; void main(){vPos=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position*.985,1.0);}',
-      fragmentShader: 'precision highp float; uniform float uTime; varying vec3 vPos; float line(float x,float w){return smoothstep(w,0.0,abs(x));} void main(){float a=0.0; a+=line(sin((vPos.x+vPos.y)*19.0+uTime*1.3)*.5+sin(vPos.z*21.0-uTime*.7)*.5,.12); a+=line(sin(vPos.x*32.0-uTime*.9)+cos(vPos.y*24.0+uTime*.6),.16); float grad=smoothstep(.55,-.65,vPos.y+.04*sin(vPos.x*4.0+uTime*.4)); a*=grad*smoothstep(.98,.2,length(vPos.xy)); gl_FragColor=vec4(.55,.95,1.0,a*.055);}'
-    });
-    var caustics = new THREE.Mesh(sphereGeo, causticMat);
-    orbGroup.add(caustics);
-
-    var flare = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, opacity: 0.88, depthWrite: false, blending: THREE.AdditiveBlending, map: makeFlareTexture() }));
-    flare.position.set(-0.055, 0.055, 0.56);
-    flare.scale.set(0.13, 0.13, 1);
-    orbGroup.add(flare);
-
-    var dotTex = makeDotTexture();
-    var bubbleGeo = new THREE.SphereGeometry(0.012, 16, 16);
-    var bubbleMat = new THREE.MeshPhysicalMaterial({ color: 0xc8f8ff, transparent: true, opacity: 0.45, roughness: 0, transmission: 1, thickness: 0.4, ior: 1.4, envMap: envTex, envMapIntensity: 2, depthWrite: false });
-    var bubbles = [];
-    for (var i = 0; i < 28; i++) {
-      var b = new THREE.Mesh(bubbleGeo, bubbleMat);
-      b.userData = { r: 0.2 + Math.random() * 0.42, a: Math.random() * Math.PI * 2, y: -0.36 + Math.random() * 0.72, s: 0.55 + Math.random() * 1.8 };
-      orbGroup.add(b);
-      bubbles.push(b);
-    }
-
-    var orbitParticles = [];
-    for (var pi = 0; pi < 36; pi++) {
-      var pmat = new THREE.SpriteMaterial({ map: dotTex, color: 0xf2ffff, transparent: true, opacity: 0.78, depthWrite: false, blending: THREE.AdditiveBlending });
-      var psprite = new THREE.Sprite(pmat);
-      psprite.userData = { r: 0.58 + Math.random() * 0.95, a: Math.random() * Math.PI * 2, y: -0.55 + Math.random() * 1.1, s: 0.18 + Math.random() * 0.34, size: 0.026 + Math.random() * 0.044 };
-      orbGroup.add(psprite);
-      orbitParticles.push(psprite);
-    }
-
-    function screenToWorld(x, y) {
-      var ndc = new THREE.Vector3((x / window.innerWidth) * 2 - 1, -(y / window.innerHeight) * 2 + 1, 0.5);
-      ndc.unproject(camera);
-      var dir = ndc.sub(camera.position).normalize();
-      var distance = -camera.position.z / dir.z;
-      return camera.position.clone().add(dir.multiplyScalar(distance));
-    }
-
-    window.addEventListener('resize', function() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
+      var renderer = new THREE.WebGLRenderer({
+        canvas: cursorEl,
+        alpha: true,
+        antialias: true,
+        powerPreference: 'high-performance',
+        premultipliedAlpha: false
+      });
+      renderer.setClearColor(0x000000, 0);
+      renderer.domElement.style.mixBlendMode = 'screen';
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.2;
 
-    var clock = new THREE.Clock();
-    function animateCursor() {
-      requestAnimationFrame(animateCursor);
-      var t = clock.getElapsedTime();
-      var dt = Math.min(clock.getDelta(), 0.033);
+      var composer = new EffectComposer(renderer);
+      composer.addPass(new RenderPass(scene, camera));
+      var bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.36, 0.56, 0.70);
+      composer.addPass(bloom);
 
-      cX += (mouseX - cX) * 0.12;
-      cY += (mouseY - cY) * 0.12;
-      cursorHover += ((cursorCanvas.classList.contains('hover') ? 1 : 0) - cursorHover) * 0.16;
-      cursorClick += ((cursorCanvas.classList.contains('click') ? 1 : 0) - cursorClick) * 0.24;
+      function makeEnvironment() {
+        var c = document.createElement('canvas');
+        c.width = 2048;
+        c.height = 1024;
+        var g = c.getContext('2d');
 
-      var world = screenToWorld(cX, cY);
-      orbGroup.position.lerp(world, 0.42);
+        var sky = g.createLinearGradient(0, 0, 0, 430);
+        sky.addColorStop(0, '#006fd8');
+        sky.addColorStop(.42, '#58cfff');
+        sky.addColorStop(1, '#f4feff');
+        g.fillStyle = sky;
+        g.fillRect(0, 0, c.width, 430);
 
-      var trailDX = mouseX - lastTrailX;
-      var trailDY = mouseY - lastTrailY;
-      if (Math.sqrt(trailDX * trailDX + trailDY * trailDY) > 3.2) {
-        spawnTrailGrid(world, trailDX, trailDY);
-        lastTrailX = mouseX;
-        lastTrailY = mouseY;
+        function cloud(x, y, s, a) {
+          g.save();
+          g.globalAlpha = a;
+          g.filter = 'blur(' + (14 * s) + 'px)';
+          g.fillStyle = 'white';
+          for (var i = 0; i < 18; i++) {
+            g.beginPath();
+            g.ellipse(x + (Math.random() - .5) * 280 * s, y + (Math.random() - .5) * 62 * s, (35 + Math.random() * 95) * s, (11 + Math.random() * 32) * s, Math.random() * .2, 0, Math.PI * 2);
+            g.fill();
+          }
+          g.restore();
+        }
+
+        cloud(300, 125, 1.0, .66);
+        cloud(850, 72, 1.2, .72);
+        cloud(1410, 150, .95, .66);
+        cloud(1810, 82, .7, .55);
+
+        var sun = g.createRadialGradient(1040, 162, 0, 1040, 162, 210);
+        sun.addColorStop(0, 'rgba(255,255,255,1)');
+        sun.addColorStop(.045, 'rgba(255,255,255,1)');
+        sun.addColorStop(.19, 'rgba(255,240,170,.55)');
+        sun.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle = sun;
+        g.fillRect(780, 0, 520, 390);
+
+        var water = g.createLinearGradient(0, 430, 0, 645);
+        water.addColorStop(0, '#eaffff');
+        water.addColorStop(.12, '#25c1d8');
+        water.addColorStop(.52, '#0c6e89');
+        water.addColorStop(1, '#032b3e');
+        g.fillStyle = water;
+        g.fillRect(0, 430, c.width, 215);
+
+        for (var y = 440; y < 640; y += 6) {
+          var p = (y - 430) / 215;
+          g.strokeStyle = 'rgba(255,255,255,' + (.06 + (1 - p) * .34) + ')';
+          g.lineWidth = .35 + (1 - p) * 1.5;
+          g.beginPath();
+          for (var x = 0; x <= c.width; x += 14) {
+            var yy = y + Math.sin(x * .014 + y * .04) * (1.2 + p * 3.3) + Math.sin(x * .035) * .7;
+            if (x === 0) g.moveTo(x, yy); else g.lineTo(x, yy);
+          }
+          g.stroke();
+        }
+
+        g.strokeStyle = 'rgba(255,255,255,.78)';
+        g.lineWidth = 1.2;
+        g.beginPath();
+        g.moveTo(0, 430);
+        g.lineTo(c.width, 430);
+        g.stroke();
+
+        var sand = g.createLinearGradient(0, 645, 0, c.height);
+        sand.addColorStop(0, '#c48751');
+        sand.addColorStop(.42, '#7f4526');
+        sand.addColorStop(1, '#160b05');
+        g.fillStyle = sand;
+        g.fillRect(0, 645, c.width, c.height - 645);
+
+        for (var k = 0; k < 14000; k++) {
+          var sx = Math.random() * c.width;
+          var sy = 645 + Math.pow(Math.random(), .82) * (c.height - 645);
+          var r = .25 + Math.random() * 2.4;
+          var v = 70 + Math.random() * 145;
+          g.fillStyle = 'rgba(' + (v + 45) + ',' + (v * .68) + ',' + (v * .42) + ',' + (.12 + Math.random() * .5) + ')';
+          g.beginPath();
+          g.ellipse(sx, sy, r * 1.8, r * .8, Math.random() * Math.PI, 0, Math.PI * 2);
+          g.fill();
+        }
+
+        var tex = new THREE.CanvasTexture(c);
+        tex.mapping = THREE.EquirectangularReflectionMapping;
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.needsUpdate = true;
+        return tex;
       }
 
-      trailSegments.forEach(function(line) {
-        if (!line.visible) return;
-        var u = line.userData;
-        u.age += dt;
-        var p = u.age / u.life;
-        if (p >= 1) {
-          line.visible = false;
-          line.material.opacity = 0;
-          return;
-        }
-        var fade = Math.pow(1 - p, 2.5);
-        line.material.opacity = 0.12 * fade * (0.85 + Math.sin(t * 1.8 + u.phase) * 0.12);
-        var pos = line.geometry.attributes.position;
-        pos.setXYZ(0, u.start.x, u.start.y, u.start.z);
-        pos.setXYZ(1, u.end.x, u.end.y, u.end.z);
-        pos.needsUpdate = true;
+      var envTexture = makeEnvironment();
+      scene.environment = envTexture;
+
+      scene.add(new THREE.AmbientLight(0x99ddff, 1.15));
+      var key = new THREE.DirectionalLight(0xffffff, 5.2);
+      key.position.set(-3.5, 5.5, 4.5);
+      scene.add(key);
+      var cyan = new THREE.PointLight(0x46dfff, 6, 6.0);
+      cyan.position.set(2.2, -1.9, 2.5);
+      scene.add(cyan);
+      var rimLight = new THREE.PointLight(0xc9f8ff, 8, 4.2);
+      rimLight.position.set(-1.6, 1.25, 2.1);
+      scene.add(rimLight);
+
+      var orbGroup = new THREE.Group();
+      scene.add(orbGroup);
+
+      var sphereGeo = new THREE.SphereGeometry(0.62, 192, 192);
+      var glassMat = new THREE.MeshPhysicalMaterial({
+        color: 0xd8fbff,
+        roughness: 0.006,
+        metalness: 0,
+        transmission: 1,
+        thickness: 2.2,
+        ior: 1.47,
+        transparent: true,
+        opacity: 0.26,
+        envMap: envTexture,
+        envMapIntensity: 3.35,
+        clearcoat: 1,
+        clearcoatRoughness: 0.012,
+        specularIntensity: 1,
+        specularColor: 0xffffff,
+        depthWrite: false
       });
+      var glassShell = new THREE.Mesh(sphereGeo, glassMat);
+      orbGroup.add(glassShell);
 
-      innerWaterMat.uniforms.uTime.value = t;
-      causticMat.uniforms.uTime.value = t;
-
-      var targetScale = 0.336 * (1 + cursorHover * 0.14 - cursorClick * 0.14);
-      var pulse = targetScale + Math.sin(t * 1.8) * 0.008;
-      orbGroup.rotation.y = Math.sin(t * 0.43) * 0.14 + (cX / window.innerWidth - 0.5) * 0.23;
-      orbGroup.rotation.x = Math.sin(t * 0.37) * 0.08 - (cY / window.innerHeight - 0.5) * 0.18;
-      glassShell.rotation.y = t * 0.11;
-      innerWater.rotation.y = -t * 0.08;
-      caustics.rotation.z = t * 0.06;
-      glassShell.scale.setScalar(pulse);
-      innerWater.scale.setScalar(targetScale * 0.94 + Math.sin(t * 1.2) * 0.006);
-      rim.scale.setScalar(targetScale * 1.06 + Math.sin(t * 1.7) * 0.006);
-      caustics.scale.setScalar(targetScale * 0.995);
-      flare.scale.setScalar(targetScale * 0.42);
-      flare.material.opacity = 0.92 + Math.sin(t * 3.2) * 0.06;
-
-      bubbles.forEach(function(bubble, j) {
-        var u = bubble.userData;
-        var a = u.a + t * (0.22 + j * 0.006);
-        bubble.position.set(Math.cos(a) * u.r * 0.65, u.y + Math.sin(t * u.s + j) * 0.025, Math.sin(a) * u.r * 0.55);
-        bubble.scale.setScalar(0.55 + Math.sin(t * 1.7 + j) * 0.18);
+      var innerWaterMat = new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        uniforms: { uTime: { value: 0 }, uEnv: { value: envTexture } },
+        vertexShader: `
+          varying vec3 vPos;
+          varying vec3 vNormal;
+          varying vec3 vWorld;
+          uniform float uTime;
+          float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
+          float noise(vec3 p){
+            vec3 i=floor(p); vec3 f=fract(p); f=f*f*(3.0-2.0*f);
+            float n000=hash(i+vec3(0,0,0)); float n100=hash(i+vec3(1,0,0));
+            float n010=hash(i+vec3(0,1,0)); float n110=hash(i+vec3(1,1,0));
+            float n001=hash(i+vec3(0,0,1)); float n101=hash(i+vec3(1,0,1));
+            float n011=hash(i+vec3(0,1,1)); float n111=hash(i+vec3(1,1,1));
+            float nx00=mix(n000,n100,f.x); float nx10=mix(n010,n110,f.x);
+            float nx01=mix(n001,n101,f.x); float nx11=mix(n011,n111,f.x);
+            return mix(mix(nx00,nx10,f.y),mix(nx01,nx11,f.y),f.z);
+          }
+          float fbm(vec3 p){float v=0.0;float a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=.5;}return v;}
+          void main(){
+            vPos=position;
+            vNormal=normal;
+            float gradientFill=smoothstep(.62,-.78,position.y);
+            float n=fbm(position*4.6+vec3(uTime*.16,-uTime*.08,uTime*.1));
+            vec3 p=position*.955;
+            p+=normal*(n-.5)*.032*gradientFill;
+            vec4 world=modelMatrix*vec4(p,1.0);
+            vWorld=world.xyz;
+            gl_Position=projectionMatrix*viewMatrix*world;
+          }
+        `,
+        fragmentShader: `
+          precision highp float;
+          varying vec3 vPos;
+          varying vec3 vNormal;
+          varying vec3 vWorld;
+          uniform float uTime;
+          uniform sampler2D uEnv;
+          vec2 envUV(vec3 d){d=normalize(d);return vec2(atan(d.z,d.x)/6.2831853+.5,asin(d.y)/3.1415926+.5);}
+          float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+          float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);} 
+          float fbm(vec2 p){float v=0.;float a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.05;a*=.5;}return v;}
+          void main(){
+            vec3 V=normalize(cameraPosition-vWorld);
+            vec3 N=normalize(vNormal+vec3((fbm(vPos.xy*6.0+uTime*.18)-.5)*.22,(fbm(vPos.yz*7.0-uTime*.14)-.5)*.18,0.0));
+            vec3 R=reflect(-V,N);
+            vec3 env=texture2D(uEnv,envUV(R)).rgb;
+            float fres=pow(1.0-max(dot(N,V),0.0),2.2);
+            float wave=vPos.y+.08*sin(vPos.x*4.4+uTime*.45)+.035*sin(vPos.z*7.0-uTime*.32);
+            float waterGradient=smoothstep(.64,-.74,wave);
+            float softBody=smoothstep(.02,.92,waterGradient);
+            float depth=pow(clamp(softBody,0.0,1.0),.78);
+            float horizon=smoothstep(.055,0.0,abs(wave+.02*sin(vPos.x*8.0-uTime*.2)))*.45;
+            vec3 topGlass=vec3(.78,.97,1.0);
+            vec3 deepWater=vec3(.015,.30,.58);
+            vec3 aqua=vec3(.18,.82,1.0);
+            vec3 col=mix(topGlass,deepWater,depth*.72);
+            col=mix(col,aqua,depth*(.26+.24*fres));
+            col=mix(col,env*vec3(.62,.98,1.25),.45+.20*fres);
+            col+=vec3(.86,1.0,1.0)*horizon;
+            col+=vec3(.18,.84,1.0)*fres*.82;
+            float alpha=.10+depth*.16+fres*.24+horizon*.12;
+            gl_FragColor=vec4(col,clamp(alpha,0.0,.86));
+          }
+        `
       });
+      var innerWater = new THREE.Mesh(sphereGeo, innerWaterMat);
+      orbGroup.add(innerWater);
 
-      orbitParticles.forEach(function(ps, j) {
-        var u = ps.userData;
-        var a = u.a + t * u.s;
-        ps.position.set(Math.cos(a) * u.r, u.y + Math.sin(t * (u.s + 0.2) + j) * 0.08, Math.sin(a) * u.r * 0.55);
-        ps.scale.setScalar(u.size * (1.05 + Math.sin(t * 2.0 + j) * 0.24));
-        ps.material.opacity = 0.42 + Math.sin(t * 1.7 + j) * 0.12;
+      var causticMat = new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        uniforms: { uTime: { value: 0 } },
+        vertexShader: 'varying vec3 vPos; void main(){vPos=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position*.985,1.0);}',
+        fragmentShader: `
+          precision highp float;
+          uniform float uTime;
+          varying vec3 vPos;
+          float line(float x,float w){return smoothstep(w,0.0,abs(x));}
+          void main(){
+            float a=0.0;
+            a+=line(sin((vPos.x+vPos.y)*19.0+uTime*1.3)*.5+sin(vPos.z*21.0-uTime*.7)*.5,.12);
+            a+=line(sin(vPos.x*32.0-uTime*.9)+cos(vPos.y*24.0+uTime*.6),.16);
+            float grad=smoothstep(.55,-.65,vPos.y+.04*sin(vPos.x*4.0+uTime*.4));
+            a*=grad*smoothstep(.98,.2,length(vPos.xy));
+            gl_FragColor=vec4(.55,.95,1.0,a*.055);
+          }
+        `
       });
+      var caustics = new THREE.Mesh(sphereGeo, causticMat);
+      orbGroup.add(caustics);
 
-      renderer.setClearColor(0x000000, 0);
-      renderer.setClearAlpha(0);
-      renderer.clear(true, true, true);
-      renderer.render(scene, camera);
+      var rimMat = new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){vec4 mv=modelViewMatrix*vec4(position*1.012,1.0); vN=normalize(normalMatrix*normal); vV=normalize(-mv.xyz); gl_Position=projectionMatrix*mv;}',
+        fragmentShader: 'varying vec3 vN; varying vec3 vV; void main(){float f=pow(1.0-max(dot(normalize(vN),normalize(vV)),0.0),2.15); gl_FragColor=vec4(.56,.94,1.0,f*.45);}'
+      });
+      var rim = new THREE.Mesh(sphereGeo, rimMat);
+      orbGroup.add(rim);
+
+      function makeFlareTexture() {
+        var c = document.createElement('canvas');
+        c.width = c.height = 256;
+        var g = c.getContext('2d');
+        var rg = g.createRadialGradient(128,128,0,128,128,120);
+        rg.addColorStop(0,'rgba(255,255,255,1)');
+        rg.addColorStop(.08,'rgba(255,255,255,.95)');
+        rg.addColorStop(.22,'rgba(150,235,255,.55)');
+        rg.addColorStop(1,'rgba(255,255,255,0)');
+        g.fillStyle = rg;
+        g.fillRect(0,0,256,256);
+        g.strokeStyle='rgba(255,255,255,.75)';
+        g.lineWidth=2;
+        g.beginPath(); g.moveTo(26,128); g.lineTo(230,128); g.stroke();
+        g.beginPath(); g.moveTo(128,26); g.lineTo(128,230); g.stroke();
+        var tex = new THREE.CanvasTexture(c);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+      }
+
+      var flareMat = new THREE.SpriteMaterial({ transparent: true, opacity: .88, depthWrite: false, blending: THREE.AdditiveBlending, map: makeFlareTexture() });
+      var flare = new THREE.Sprite(flareMat);
+      flare.position.set(-.055, .055, .56);
+      flare.scale.set(.18, .18, 1);
+      orbGroup.add(flare);
+
+      var bubbleGeo = new THREE.SphereGeometry(.012, 16, 16);
+      var bubbleMat = new THREE.MeshPhysicalMaterial({ color: 0xc8f8ff, transparent: true, opacity: .45, roughness: 0, transmission: 1, thickness: .4, ior: 1.4, envMap: envTexture, envMapIntensity: 2, depthWrite: false });
+      var bubbles = [];
+      for (var i = 0; i < 28; i++) {
+        var b = new THREE.Mesh(bubbleGeo, bubbleMat);
+        b.userData = { r: .2 + Math.random() * .42, a: Math.random() * Math.PI * 2, y: -.36 + Math.random() * .72, s: .55 + Math.random() * 1.8 };
+        orbGroup.add(b);
+        bubbles.push(b);
+      }
+
+      function resizeCursor() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        composer.setSize(window.innerWidth, window.innerHeight);
+        bloom.setSize(window.innerWidth, window.innerHeight);
+      }
+      window.addEventListener('resize', resizeCursor, false);
+
+      function screenToWorld(x, y) {
+        var ndc = new THREE.Vector3((x / window.innerWidth) * 2 - 1, -(y / window.innerHeight) * 2 + 1, .5);
+        ndc.unproject(camera);
+        var dir = ndc.sub(camera.position).normalize();
+        var distance = -camera.position.z / dir.z;
+        return camera.position.clone().add(dir.multiplyScalar(distance));
+      }
+
+      var clock = new THREE.Clock();
+      function animateCursor() {
+        requestAnimationFrame(animateCursor);
+        var t = clock.getElapsedTime();
+        var dt = Math.min(clock.getDelta(), .033);
+
+        pX = cX;
+        pY = cY;
+        cX += (mouseX - cX) * .12;
+        cY += (mouseY - cY) * .12;
+
+        cursorHover += ((cursorEl.classList.contains('hover') ? 1 : 0) - cursorHover) * .16;
+        cursorClick += ((cursorEl.classList.contains('click') ? 1 : 0) - cursorClick) * .24;
+
+        var world = screenToWorld(cX, cY);
+        orbGroup.position.lerp(world, .42);
+
+        var targetScale = .336 * (1 + cursorHover * .14 - cursorClick * .14);
+        innerWaterMat.uniforms.uTime.value = t;
+        causticMat.uniforms.uTime.value = t;
+
+        orbGroup.rotation.y = Math.sin(t * .43) * .14 + (cX / window.innerWidth - .5) * .23;
+        orbGroup.rotation.x = Math.sin(t * .37) * .08 - (cY / window.innerHeight - .5) * .18;
+        glassShell.rotation.y = t * .11;
+        innerWater.rotation.y = -t * .08;
+        caustics.rotation.z = t * .06;
+
+        var pulse = targetScale + Math.sin(t * 1.8) * .008;
+        glassShell.scale.setScalar(pulse);
+        innerWater.scale.setScalar(targetScale * .985 + Math.sin(t * 1.2) * .006);
+        rim.scale.setScalar(targetScale * 1.012 + Math.sin(t * 1.7) * .006);
+        caustics.scale.setScalar(targetScale * .995);
+        flare.scale.setScalar(targetScale * .42);
+        flare.material.opacity = .65 + Math.sin(t * 3.2) * .18;
+        flare.position.x = -.055 + Math.sin(t * .7) * .008;
+        flare.position.y = .055 + Math.cos(t * .8) * .006;
+
+        bubbles.forEach(function (bubble, j) {
+          var u = bubble.userData;
+          var a = u.a + t * (.22 + j * .006);
+          bubble.position.set(Math.cos(a) * u.r * .65, u.y + Math.sin(t * u.s + j) * .025, Math.sin(a) * u.r * .55);
+          bubble.scale.setScalar(.55 + Math.sin(t * 1.7 + j) * .18);
+        });
+
+        composer.render(dt);
+      }
+      animateCursor();
+      console.assert(!!cursorEl, '3D cursor canvas exists');
+      console.assert(!!renderer.getContext(), '3D cursor WebGL context exists');
+      return true;
+    }).catch(function (err) {
+      console.error('3D cursor failed to load; falling back to CSS cursor.', err);
+      return false;
+    });
+  }
+
+  initLiquidGlassCursor().then(function (ok) { if (!ok) initCssCursorFallback(); });
+
+  document.addEventListener('mousemove', function (e) { setMouse(e.clientX, e.clientY); }, false);
+  document.addEventListener('pointermove', function (e) { setMouse(e.clientX, e.clientY); }, false);
+  document.addEventListener('mouseleave', function () { if (cursorEl) cursorEl.style.opacity = '0'; }, false);
+  document.addEventListener('mouseenter', function (e) { setMouse(e.clientX || mouseX, e.clientY || mouseY); if (cursorEl) cursorEl.style.opacity = '1'; }, false);
+  document.addEventListener('mousedown', function () { if (cursorEl) cursorEl.classList.add('click'); }, false);
+  document.addEventListener('mouseup', function () { if (cursorEl) cursorEl.classList.remove('click'); }, false);
+
+  var hoverables = document.querySelectorAll('a, button, .file-label, .dropzone, .status-pill, .feature-card, .benefit, .finding-header');
+  for (var i = 0; i < hoverables.length; i++) {
+    (function (el) {
+      el.addEventListener('mouseenter', function () { if (cursorEl) cursorEl.classList.add('hover'); });
+      el.addEventListener('mouseleave', function () { if (cursorEl) cursorEl.classList.remove('hover'); });
+    }(hoverables[i]));
+  }
+
+  var spinV = 0, spin = 0, tilt = 0, drift = 0;
+  var previewVisible = true;
+  var lastSY = window.pageYOffset || 0, lastST = Date.now();
+
+  window.addEventListener('scroll', function () {
+    if (!previewVisible) return;
+    var now = Date.now();
+    var y = window.pageYOffset || 0;
+    var dy = y - lastSY;
+    var dt = Math.max(now - lastST, 16);
+    spinV += (dy / dt) * 1.5;
+    if (spinV > 5) spinV = 5;
+    if (spinV < -5) spinV = -5;
+    lastSY = y; lastST = now;
+  }, false);
+
+  if (window.IntersectionObserver) {
+    var previewStageEl = document.querySelector('.preview-stage');
+    if (previewStageEl) {
+      new IntersectionObserver(function (entries) {
+        previewVisible = entries[0].isIntersecting;
+        if (!previewVisible) spinV = 0;
+      }, { threshold: 0.1 }).observe(previewStageEl);
     }
-    animateCursor();
-    return true;
-  }).catch(function(err) {
-    console.error('3D cursor failed to load; falling back to CSS cursor.', err);
-    return false;
-  });
-}
+  }
 
-initLiquidGlassCursor().then(function(ok) { if (!ok) initCssCursorFallback(); }).catch(function(err) { console.error('Cursor boot failed.', err); initCssCursorFallback(); });
+  (function previewLoop() {
+    if (previewVisible) {
+      spin += spinV;
+      spinV *= 0.92;
+      if (Math.abs(spinV) < 0.005) spinV = 0;
+    }
+    var sy = window.pageYOffset || 0;
+    var td = Math.min(sy * 0.08, 220);
+    drift += (td - drift) * 0.06;
+    tilt += (spinV * 0.14 - tilt) * 0.08;
+    if (spin > 18) spin = 18;
+    if (spin < -18) spin = -18;
+    if (previewEl) previewEl.style.transform = 'translateX(' + drift + 'px) rotateY(' + (-10 + spin) + 'deg) rotateX(' + (7 + tilt) + 'deg)';
+    requestAnimationFrame(previewLoop);
+  }());
 
-var spinV = 0, spin = 0, tilt = 0, drift = 0;
-var previewVisible = true;
-var lastSY = pageYOffset, lastST = Date.now();
-window.addEventListener('scroll', function() {
-  if (!previewVisible) return;
-  var now = Date.now(), y = pageYOffset;
-  var dy = y - lastSY, delta = Math.max(now - lastST, 16);
-  spinV += (dy / delta) * 1.5;
-  spinV = Math.max(-5, Math.min(5, spinV));
-  lastSY = y; lastST = now;
-}, { passive: true });
-if (window.IntersectionObserver) {
-  var ps = document.querySelector('.preview-stage');
-  if (ps) new IntersectionObserver(function(entries) { previewVisible = entries[0].isIntersecting; if (!previewVisible) spinV = 0; }, { threshold: 0.1 }).observe(ps);
-}
-(function previewLoop() {
-  if (previewVisible) { spin += spinV; spinV *= 0.92; if (Math.abs(spinV) < .005) spinV = 0; }
-  var td = Math.min((pageYOffset) * 0.08, 220);
-  drift += (td - drift) * 0.06;
-  tilt += (spinV * 0.14 - tilt) * 0.08;
-  spin = Math.max(-18, Math.min(18, spin));
-  if (previewEl) previewEl.style.transform = 'translateX(' + drift + 'px) rotateY(' + (-10 + spin) + 'deg) rotateX(' + (7 + tilt) + 'deg)';
-  requestAnimationFrame(previewLoop);
+  function setServerState(state, text) {
+    if (!serverDot || !serverText) return;
+    serverDot.className = 'dot' + (state === 'ready' ? ' ready' : state === 'error' ? ' error' : '');
+    serverText.textContent = text;
+  }
+
+  (function warmup() {
+    setServerState('warming', 'waking server');
+    if (!window.fetch) { setServerState('error', 'fetch unavailable'); return; }
+    fetch(API_BASE + '/ping', { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); setServerState('ready', 'server ready'); })
+      .catch(function () { setServerState('error', 'server asleep'); });
+  }());
+
+  function fmtBytes(n) { if (n < 1024) return n + ' B'; if (n < 1048576) return (n / 1024).toFixed(1) + ' KB'; return (n / 1048576).toFixed(1) + ' MB'; }
+  function escHtml(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+  function normSev(v) { var s = String(v || 'INFO').toUpperCase(); return ['CRITICAL','HIGH','MEDIUM','LOW','INFO'].indexOf(s) >= 0 ? s : 'INFO'; }
+  function sevWidth(s) { return { CRITICAL:100, HIGH:78, MEDIUM:56, LOW:32, INFO:14 }[normSev(s)] || 14; }
+  function highestSev(findings) { var order = { INFO:0,LOW:1,MEDIUM:2,HIGH:3,CRITICAL:4 }, best = 'INFO'; (findings || []).forEach(function (f) { var s = normSev(f.severity || f.highest_severity); if ((order[s] || 0) > (order[best] || 0)) best = s; }); return best; }
+  function safeUrl(u) { try { var p = new URL(u); return p.protocol === 'https:' ? u : null; } catch (e) { return null; } }
+
+  function setFile(file) { selectedFile = file; if (fileNameEl) fileNameEl.textContent = file ? file.name + ' · ' + fmtBytes(file.size) : 'No file selected'; if (scanBtn) scanBtn.disabled = !file; }
+  var _ignoringChange = false;
+  fileInput.addEventListener('change', function () { if (_ignoringChange) return; setFile(fileInput.files && fileInput.files[0] ? fileInput.files[0] : null); });
+  dropzoneEl.addEventListener('dragover', function (e) { e.preventDefault(); dropzoneEl.classList.add('drag'); });
+  dropzoneEl.addEventListener('dragleave', function () { dropzoneEl.classList.remove('drag'); });
+  dropzoneEl.addEventListener('drop', function (e) { e.preventDefault(); dropzoneEl.classList.remove('drag'); var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (!f) return; _ignoringChange = true; try { fileInput.files = e.dataTransfer.files; } catch (ex) {} _ignoringChange = false; setFile(f); });
+  if (scanBtn) scanBtn.addEventListener('click', function (e) { e.stopPropagation(); if (selectedFile && !activeScan) startScan(selectedFile); });
+
+  function appendEvent(html) { var div = document.createElement('div'); div.innerHTML = html; logEl.appendChild(div.firstChild); logEl.scrollTop = logEl.scrollHeight; }
+  function addStatus(msg, kind) { var sev = kind === 'error' ? 'CRITICAL' : kind === 'warning' ? 'MEDIUM' : 'INFO'; var cls = kind === 'error' ? 'critical' : kind === 'warning' ? 'medium' : 'info'; appendEvent('<div class="event ' + cls + '"><div class="event-top"><div><strong>' + escHtml(kind === 'error' ? 'error' : kind === 'warning' ? 'warn' : 'status') + '</strong> · ' + escHtml(msg) + '</div><span class="sev-pill">' + sev + '</span></div>' + (kind !== 'status' ? '<div class="sev-bar"><span style="width:' + sevWidth(sev) + '%"></span></div>' : '') + '</div>'); }
+
+  function addFinding(pkg) {
+    var findings = pkg.findings || [], advisoryUrls = pkg.advisory_urls || [];
+    var sev = normSev(pkg.highest_severity || pkg.severity || highestSev(findings));
+    var cls = sev.toLowerCase();
+    var name = escHtml(pkg.package || pkg.name || pkg.file_path || 'file');
+    var ver = pkg.version ? ' · ' + escHtml(pkg.version) : '';
+    var cnt = findings.length;
+    var id = 'fc-' + Math.random().toString(36).slice(2);
+    var rows = '';
+    findings.forEach(function (f) {
+      rows += '<div class="finding-row"><div class="finding-row-label">Rule</div><div class="finding-row-value"><span class="finding-rule-id">' + escHtml(f.rule_id||'') + '</span>' + escHtml(f.rule_name||'') + '</div></div>';
+      rows += '<div class="finding-row"><div class="finding-row-label">Severity</div><div class="finding-row-value">' + escHtml(f.severity||'') + '</div></div>';
+      rows += '<div class="finding-row"><div class="finding-row-label">Detail</div><div class="finding-row-value">' + escHtml(f.description||'') + '</div></div>';
+      if (f.evidence) rows += '<div class="finding-row"><div class="finding-row-label">Evidence</div><div class="finding-row-value"><div class="code-snippet">' + escHtml(String(f.evidence).slice(0,400)) + '</div></div></div>';
+      if (f.file_path) rows += '<div class="finding-row"><div class="finding-row-label">Location</div><div class="finding-row-value">' + escHtml(f.file_path + (f.line_number ? ':' + f.line_number : '')) + '</div></div>';
+    });
+    advisoryUrls.slice(0, 3).forEach(function (u) { var safe = safeUrl(u); if (!safe) return; rows += '<div class="finding-row"><div class="finding-row-label">Advisory</div><div class="finding-row-value"><a class="advisory-link" href="' + escHtml(safe) + '" target="_blank" rel="noopener noreferrer">' + escHtml(safe) + '</a></div></div>'; });
+    appendEvent('<div class="finding-card ' + cls + '" id="' + id + '"><button class="finding-header" type="button" onclick="toggleCard(\'' + id + '\')"><div class="finding-title-row"><div class="finding-name"><strong>' + name + '</strong>' + ver + '</div><span class="sev-pill">' + sev + '</span></div><div class="sev-bar"><span style="width:' + sevWidth(sev) + '%"></span></div><div class="finding-meta"><span>' + cnt + ' finding' + (cnt === 1 ? '' : 's') + '</span><span>click to expand</span><span class="chevron">&#8964;</span></div></button><div class="finding-body">' + rows + '</div></div>');
+  }
+
+  window.toggleCard = function (id) { var el = document.getElementById(id); if (el) el.classList.toggle('expanded'); };
+  function setSummary(total, flagged, findings, clean) { if (summaryText) summaryText.textContent = clean ? 'clean ✓' : flagged + ' flagged / ' + total + ' scanned'; }
+  function parseSseBuffer(buffer, onPayload) { var parts = buffer.split(EVENT_BREAK); var remainder = parts.pop() || ''; parts.forEach(function (chunk) { var lines = chunk.split(LF), dataLines = []; lines.forEach(function (line) { if (line.indexOf('data:') === 0) dataLines.push(line.slice(5).trim()); }); if (!dataLines.length) return; try { onPayload(JSON.parse(dataLines.join('\n'))); } catch (e) { console.warn('Bad SSE payload', e, dataLines); } }); return remainder; }
+  function handlePayload(payload) { if (!payload || !payload.type) return; if (payload.type === 'status') return addStatus(payload.message || payload.phase || 'working', 'status'); if (payload.type === 'warning') return addStatus(payload.message || 'warning', 'warning'); if (payload.type === 'error') { addStatus(payload.message || 'scan failed', 'error'); if (summaryText) summaryText.textContent = 'error'; return; } if (payload.type === 'finding') return addFinding(payload); if (payload.type === 'summary') return setSummary(payload.total || 0, payload.flagged || 0, payload.total_findings || 0, !!payload.clean); if (payload.type === 'done') return addStatus('scan complete', 'status'); }
+
+  function startScan(file) {
+    if (!file || activeScan) return;
+    activeScan = true;
+    if (scanBtn) scanBtn.disabled = true;
+    if (resultsEl) resultsEl.classList.add('show');
+    if (logEl) logEl.innerHTML = '';
+    if (summaryText) summaryText.textContent = 'scanning';
+    addStatus('uploading ' + file.name + ' · ' + fmtBytes(file.size), 'status');
+    var fd = new FormData(); fd.append('file', file);
+    var controller = window.AbortController ? new AbortController() : null;
+    if (controller) activeScan = controller;
+    clearInterval(keepAliveTimer);
+    keepAliveTimer = setInterval(function () { fetch(API_BASE + '/ping', { cache:'no-store' }).catch(function () {}); }, 25000);
+    fetch(API_BASE + '/scan', { method: 'POST', body: fd, signal: controller ? controller.signal : undefined })
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        if (!res.body || !res.body.getReader) return res.text().then(function (txt) { try { handlePayload(JSON.parse(txt)); } catch (e) { addStatus(txt || 'scan finished', 'status'); } });
+        var reader = res.body.getReader(); var decoder = new TextDecoder(); var buffer = '';
+        function pump() { return reader.read().then(function (result) { if (result.done) { if (buffer.trim()) buffer = parseSseBuffer(buffer + EVENT_BREAK, handlePayload); return; } buffer += decoder.decode(result.value, { stream:true }); buffer = parseSseBuffer(buffer, handlePayload); return pump(); }); }
+        return pump();
+      })
+      .catch(function (err) { if (err && err.name === 'AbortError') return; addStatus(err && err.message ? err.message : 'failed to fetch', 'error'); if (summaryText) summaryText.textContent = 'disconnected'; })
+      .then(function () { clearInterval(keepAliveTimer); keepAliveTimer = null; activeScan = null; if (scanBtn) scanBtn.disabled = false; });
+  }
+
+  var copyrightEl = document.getElementById('copyrightLine');
+  if (copyrightEl) copyrightEl.textContent = '\u00a9 ' + new Date().getFullYear() + ' \uc870\uc900\ud64d · Bryce Cho';
 }());
-
-function setServerState(state, text) {
-  serverDot.className = 'dot' + (state === 'ready' ? ' ready' : state === 'error' ? ' error' : '');
-  serverText.textContent = text;
-}
-setServerState('warming', 'waking server');
-fetch(API_BASE + '/ping', { cache: 'no-store' }).then(function(r) { if (!r.ok) throw 0; setServerState('ready', 'server ready'); }).catch(function() { setServerState('error', 'server asleep'); });
-
-var selectedFile = null, activeScan = null, keepAliveTimer = null;
-var ignoringChange = false;
-function fmtBytes(n) { return n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(1) + ' KB' : (n / 1048576).toFixed(1) + ' MB'; }
-function escHtml(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
-function normSev(v) { var s = String(v || 'INFO').toUpperCase(); return ['CRITICAL','HIGH','MEDIUM','LOW','INFO'].indexOf(s) >= 0 ? s : 'INFO'; }
-function sevWidth(s) { return {CRITICAL:100,HIGH:78,MEDIUM:56,LOW:32,INFO:14}[normSev(s)] || 14; }
-function highestSev(findings) { var order = {INFO:0,LOW:1,MEDIUM:2,HIGH:3,CRITICAL:4}; var best = 'INFO'; (findings || []).forEach(function(f) { var s = normSev(f.severity || f.highest_severity); if (order[s] > order[best]) best = s; }); return best; }
-function safeUrl(u) { try { var p = new URL(u); return p.protocol === 'https:' ? u : null; } catch (e) { return null; } }
-function setFile(file) { selectedFile = file; fileNameEl.textContent = file ? file.name + ' · ' + fmtBytes(file.size) : 'No file selected'; scanBtn.disabled = !file; }
-fileInput.addEventListener('change', function() { if (ignoringChange) return; setFile(fileInput.files && fileInput.files[0] ? fileInput.files[0] : null); });
-dropzoneEl.addEventListener('dragover', function(e) { e.preventDefault(); dropzoneEl.classList.add('drag'); });
-dropzoneEl.addEventListener('dragleave', function() { dropzoneEl.classList.remove('drag'); });
-dropzoneEl.addEventListener('drop', function(e) { e.preventDefault(); dropzoneEl.classList.remove('drag'); var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (!f) return; ignoringChange = true; try { fileInput.files = e.dataTransfer.files; } catch (err) {} ignoringChange = false; setFile(f); });
-scanBtn.addEventListener('click', function(e) { e.stopPropagation(); if (selectedFile && !activeScan) startScan(selectedFile); });
-function appendEvent(html) { var d = document.createElement('div'); d.innerHTML = html; logEl.appendChild(d.firstChild); logEl.scrollTop = logEl.scrollHeight; }
-function addStatus(msg, kind) { kind = kind || 'status'; var sev = kind === 'error' ? 'CRITICAL' : kind === 'warning' ? 'MEDIUM' : 'INFO'; var cls = kind === 'error' ? 'critical' : kind === 'warning' ? 'medium' : 'info'; appendEvent('<div class="event ' + cls + '"><div class="event-top"><div><strong>' + escHtml(kind === 'error' ? 'error' : kind === 'warning' ? 'warn' : 'status') + '</strong> · ' + escHtml(msg) + '</div><span class="sev-pill">' + sev + '</span></div>' + (kind !== 'status' ? '<div class="sev-bar"><span style="width:' + sevWidth(sev) + '%"></span></div>' : '') + '</div>'); }
-function addFinding(pkg) {
-  var findings = pkg.findings || [], advisoryUrls = pkg.advisory_urls || [];
-  var sev = normSev(pkg.highest_severity || pkg.severity || highestSev(findings));
-  var cls = sev.toLowerCase(), name = escHtml(pkg.package || pkg.name || pkg.file_path || 'file'), ver = pkg.version ? ' · ' + escHtml(pkg.version) : '';
-  var id = 'fc-' + Math.random().toString(36).slice(2);
-  var rows = '';
-  findings.forEach(function(f) {
-    rows += '<div class="finding-row"><div class="finding-row-label">Rule</div><div class="finding-row-value"><span class="finding-rule-id">' + escHtml(f.rule_id || '') + '</span>' + escHtml(f.rule_name || '') + '</div></div>';
-    rows += '<div class="finding-row"><div class="finding-row-label">Severity</div><div class="finding-row-value">' + escHtml(f.severity || '') + '</div></div>';
-    rows += '<div class="finding-row"><div class="finding-row-label">Detail</div><div class="finding-row-value">' + escHtml(f.description || '') + '</div></div>';
-    if (f.evidence) rows += '<div class="finding-row"><div class="finding-row-label">Evidence</div><div class="finding-row-value"><div class="code-snippet">' + escHtml(String(f.evidence).slice(0,400)) + '</div></div></div>';
-    if (f.file_path) rows += '<div class="finding-row"><div class="finding-row-label">Location</div><div class="finding-row-value">' + escHtml(f.file_path + (f.line_number ? ':' + f.line_number : '')) + '</div></div>';
-  });
-  advisoryUrls.slice(0,3).forEach(function(u) { var safe = safeUrl(u); if (safe) rows += '<div class="finding-row"><div class="finding-row-label">Advisory</div><div class="finding-row-value"><a class="advisory-link" href="' + escHtml(safe) + '" target="_blank" rel="noopener noreferrer">' + escHtml(safe) + '</a></div></div>'; });
-  appendEvent('<div class="finding-card ' + cls + '" id="' + id + '"><button class="finding-header" type="button" onclick="toggleCard(\'' + id + '\')"><div class="finding-title-row"><div class="finding-name"><strong>' + name + '</strong>' + ver + '</div><span class="sev-pill">' + sev + '</span></div><div class="sev-bar"><span style="width:' + sevWidth(sev) + '%"></span></div><div class="finding-meta"><span>' + findings.length + ' finding' + (findings.length === 1 ? '' : 's') + '</span><span>click to expand</span><span class="chevron">⌄</span></div></button><div class="finding-body">' + rows + '</div></div>');
-}
-window.toggleCard = function(id) { var el = document.getElementById(id); if (el) el.classList.toggle('expanded'); };
-function setSummary(total, flagged, findings, clean) { summaryText.textContent = clean ? 'clean ✓' : flagged + ' flagged / ' + total + ' scanned'; }
-var NL = String.fromCharCode(10);
-var EVENT_BREAK = NL + NL;
-function parseSseBuffer(buffer, onPayload) { var parts = buffer.split(EVENT_BREAK), rem = parts.pop() || ''; parts.forEach(function(chunk) { var data = []; chunk.split(NL).forEach(function(line) { if (line.indexOf('data:') === 0) data.push(line.slice(5).trim()); }); if (!data.length) return; try { onPayload(JSON.parse(data.join(NL))); } catch(e) { console.warn('Bad SSE payload', e, data); } }); return rem; }
-function handlePayload(p) { if (!p || !p.type) return; if (p.type === 'status') return addStatus(p.message || p.phase || 'working'); if (p.type === 'warning') return addStatus(p.message || 'warning', 'warning'); if (p.type === 'error') { addStatus(p.message || 'scan failed', 'error'); summaryText.textContent = 'error'; return; } if (p.type === 'finding') return addFinding(p); if (p.type === 'summary') return setSummary(p.total || 0, p.flagged || 0, p.total_findings || 0, !!p.clean); if (p.type === 'done') return addStatus('scan complete'); }
-function startScan(file) {
-  if (!file || activeScan) return;
-  activeScan = true; scanBtn.disabled = true; resultsEl.classList.add('show'); logEl.innerHTML = ''; summaryText.textContent = 'scanning';
-  addStatus('uploading ' + file.name + ' · ' + fmtBytes(file.size));
-  var fd = new FormData(); fd.append('file', file);
-  var controller = window.AbortController ? new AbortController() : null; if (controller) activeScan = controller;
-  clearInterval(keepAliveTimer); keepAliveTimer = setInterval(function() { fetch(API_BASE + '/ping', { cache:'no-store' }).catch(function(){}); }, 25000);
-  fetch(API_BASE + '/scan', { method:'POST', body:fd, signal:controller ? controller.signal : undefined })
-    .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); if (!res.body || !res.body.getReader) return res.text().then(function(txt) { try { handlePayload(JSON.parse(txt)); } catch (err) { addStatus(txt || 'scan finished'); } }); var reader = res.body.getReader(), decoder = new TextDecoder(); var buffer = ''; function pump() { return reader.read().then(function(result) { if (result.done) { if (buffer.trim()) buffer = parseSseBuffer(buffer + EVENT_BREAK, handlePayload); return; } buffer += decoder.decode(result.value, { stream:true }); buffer = parseSseBuffer(buffer, handlePayload); return pump(); }); } return pump(); })
-    .catch(function(err) { if (err && err.name === 'AbortError') return; addStatus(err && err.message ? err.message : 'failed to fetch', 'error'); summaryText.textContent = 'disconnected'; })
-    .then(function() { clearInterval(keepAliveTimer); keepAliveTimer = null; activeScan = null; scanBtn.disabled = false; });
-}
-document.getElementById('copyrightLine').textContent = '© ' + new Date().getFullYear() + ' 조준홍 · Bryce Cho';
-</script>
+  </script>
 </body>
 </html>
