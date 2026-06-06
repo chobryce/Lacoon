@@ -65,13 +65,11 @@ from urllib.parse import quote, urlparse
 log = logging.getLogger("Laocoon")
 log.addHandler(logging.NullHandler())
 
-# ── Optional dependencies ────────────────────────────────────────────────────
 try:
     import requests
     from requests.adapters import HTTPAdapter
     from urllib3.util.retry import Retry
     HAS_REQUESTS = True
-    # Validate requests functionality
     test_session = requests.Session()
     test_session.close()
 except (ImportError, AttributeError) as e:
@@ -81,7 +79,6 @@ except (ImportError, AttributeError) as e:
 try:
     from bs4 import BeautifulSoup
     HAS_BS4 = True
-    # Validate BeautifulSoup functionality
     test_soup = BeautifulSoup("<html></html>", "html.parser")
 except (ImportError, AttributeError) as e:
     HAS_BS4 = False
@@ -100,15 +97,11 @@ try:
     from packaging.version import Version, InvalidVersion
     from packaging.specifiers import SpecifierSet
     HAS_PACKAGING = True
-    # Validate packaging functionality
     test_version = Version("1.0.0")
 except (ImportError, AttributeError) as e:
     HAS_PACKAGING = False
     log.warning(f"packaging library not available: {e}")
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  SEVERITY LEVELS
-# ─────────────────────────────────────────────────────────────────────────────
 
 class Severity(str, Enum):
     CRITICAL = "CRITICAL"
@@ -123,16 +116,12 @@ class Severity(str, Enum):
         return order.index(self) < order.index(other)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  DATA STRUCTURES
-# ─────────────────────────────────────────────────────────────────────────────
-
 @dataclass
 class Package:
     name: str
     version: str
     source_file: str
-    ecosystem: str        # "npm" or "pypi"
+    ecosystem: str
     is_dev_dependency: bool = False
     extras: Dict[str, Any] = field(default_factory=dict)
 
@@ -141,9 +130,9 @@ class RuleMatch:
     rule_id: str
     rule_name: str
     severity: Severity
-    category: str         # "source_code" | "metadata" | "advisory" | "typosquat"
+    category: str
     description: str
-    evidence: str         # specific snippet or detail that triggered the rule
+    evidence: str
     line_number: Optional[int] = None
     file_path: Optional[str] = None
 
@@ -189,10 +178,6 @@ class PackageResult:
         }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  LOGGING
-# ─────────────────────────────────────────────────────────────────────────────
-
 def build_logger(name: str, level: int = logging.WARNING) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(level)
@@ -204,10 +189,6 @@ def build_logger(name: str, level: int = logging.WARNING) -> logging.Logger:
 
 log = build_logger("Laocoon")
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  HTTP SESSION WITH RETRY
-# ─────────────────────────────────────────────────────────────────────────────
 
 def build_session() -> "requests.Session":
     if not HAS_REQUESTS:
@@ -228,12 +209,6 @@ def build_session() -> "requests.Session":
     return session
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  TYPOSQUATTING REFERENCE LISTS
-# ─────────────────────────────────────────────────────────────────────────────
-
-# Curated from PyPI/npm top-500 download statistics and known attack campaigns.
-# A non-exhaustive but representative reference set.
 POPULAR_PYPI_PACKAGES: Set[str] = {
     "requests", "numpy", "pandas", "scipy", "matplotlib", "django", "flask",
     "sqlalchemy", "celery", "redis", "boto3", "botocore", "awscli", "pip",
@@ -277,7 +252,6 @@ POPULAR_NPM_PACKAGES: Set[str] = {
     "debug", "pino", "winston", "bunyan", "loglevel",
 }
 
-# Known typosquatting attack name mappings (victim → malicious variants)
 KNOWN_TYPOSQUAT_CAMPAIGNS: Dict[str, List[str]] = {
     "requests":      ["request", "requets", "requestss", "reqeusts", "rqeusts"],
     "boto3":         ["b0to3", "bot03", "boto", "botto3"],
@@ -301,10 +275,6 @@ KNOWN_TYPOSQUAT_CAMPAIGNS: Dict[str, List[str]] = {
 }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  SOURCE CODE ANALYSIS RULES
-# ─────────────────────────────────────────────────────────────────────────────
-
 @dataclass
 class SourceCodeRule:
     rule_id: str
@@ -312,33 +282,25 @@ class SourceCodeRule:
     severity: Severity
     description: str
     pattern: re.Pattern
-    context_patterns: List[re.Pattern] = field(default_factory=list)  # AND conditions
-    exclude_patterns: List[re.Pattern] = field(default_factory=list)   # NOT conditions
-    min_context_matches: int = 0    # how many context_patterns must also match
+    context_patterns: List[re.Pattern] = field(default_factory=list)
+    exclude_patterns: List[re.Pattern] = field(default_factory=list)
+    min_context_matches: int = 0
 
     def matches(self, content: str) -> List[Tuple[re.Match, str]]:
-        """Return list of (match, evidence) tuples."""
         results = []
         if not self.pattern.search(content):
             return results
-
-        # Evaluate NOT conditions
         for excl in self.exclude_patterns:
             if excl.search(content):
                 return results
-
-        # Evaluate AND conditions
         ctx_hits = sum(1 for cp in self.context_patterns if cp.search(content))
         if ctx_hits < self.min_context_matches:
             return results
-
         for m in self.pattern.finditer(content):
-            # Clip evidence to a reasonable window around the match
             start = max(0, m.start() - 60)
             end   = min(len(content), m.end() + 60)
             evidence = content[start:end].strip().replace("\n", " ")
             results.append((m, evidence))
-
         return results
 
 
@@ -346,525 +308,380 @@ def _r(pattern: str, flags: int = re.IGNORECASE | re.MULTILINE) -> re.Pattern:
     return re.compile(pattern, flags)
 
 
-# 40+ source code detection rules
 SOURCE_CODE_RULES: List[SourceCodeRule] = [
-
-    # ── Network exfiltration ──────────────────────────────────────────────────
     SourceCodeRule(
-        rule_id="SC-NET-001",
-        name="outbound_http_request",
-        severity=Severity.HIGH,
+        rule_id="SC-NET-001", name="outbound_http_request", severity=Severity.HIGH,
         description="Outbound HTTP/HTTPS request — potential data exfiltration or C2 contact.",
         pattern=_r(r"""(requests\.(get|post|put|patch)|urllib\.request\.(urlopen|urlretrieve)|httpx\.(get|post|AsyncClient)|http\.client|fetch\s*\()"""),
-        context_patterns=[
-            _r(r"""(os\.environ|getpass|getuser|socket\.gethostname|platform\.(node|uname)|subprocess|base64|binascii)""")
-        ],
+        context_patterns=[_r(r"""(os\.environ|getpass|getuser|socket\.gethostname|platform\.(node|uname)|subprocess|base64|binascii)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-NET-002",
-        name="dns_lookup_during_install",
-        severity=Severity.HIGH,
+        rule_id="SC-NET-002", name="dns_lookup_during_install", severity=Severity.HIGH,
         description="DNS resolution at install time — common in supply chain implants.",
         pattern=_r(r"""socket\.(gethostbyname|getaddrinfo|gethostname)\s*\("""),
         context_patterns=[_r(r"""requests\.|urllib|httpx|http\.client""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-NET-003",
-        name="raw_socket_connection",
-        severity=Severity.HIGH,
+        rule_id="SC-NET-003", name="raw_socket_connection", severity=Severity.HIGH,
         description="Raw socket connection — used in RATs and C2 implants.",
         pattern=_r(r"""socket\.socket\s*\(.*\).*\.(connect|bind)\s*\("""),
     ),
     SourceCodeRule(
-        rule_id="SC-NET-004",
-        name="ip_api_geolocation_beacon",
-        severity=Severity.CRITICAL,
+        rule_id="SC-NET-004", name="ip_api_geolocation_beacon", severity=Severity.CRITICAL,
         description="ip-api.com geolocation beacon — InvisibleFerret and other RATs use this to fingerprint victims.",
         pattern=_r(r"""ip-api\.com"""),
     ),
     SourceCodeRule(
-        rule_id="SC-NET-005",
-        name="telegram_exfiltration",
-        severity=Severity.CRITICAL,
+        rule_id="SC-NET-005", name="telegram_exfiltration", severity=Severity.CRITICAL,
         description="Telegram Bot API used for data exfiltration — common in DPRK-linked supply chain attacks.",
         pattern=_r(r"""api\.telegram\.org/bot"""),
     ),
     SourceCodeRule(
-        rule_id="SC-NET-006",
-        name="discord_webhook_exfiltration",
-        severity=Severity.HIGH,
+        rule_id="SC-NET-006", name="discord_webhook_exfiltration", severity=Severity.HIGH,
         description="Discord webhook used for data exfiltration — widely abused in npm malware.",
         pattern=_r(r"""discord(app)?\.com/api/webhooks"""),
     ),
     SourceCodeRule(
-        rule_id="SC-NET-007",
-        name="ftp_file_transfer",
-        severity=Severity.MEDIUM,
+        rule_id="SC-NET-007", name="ftp_file_transfer", severity=Severity.MEDIUM,
         description="FTP connection established at install/import time — potential staging or exfil.",
         pattern=_r(r"""ftplib\.FTP\s*\(|\.connect\s*\([^)]+\).*\.login\s*\("""),
     ),
-
-    # ── Process execution ─────────────────────────────────────────────────────
     SourceCodeRule(
-        rule_id="SC-EXEC-001",
-        name="subprocess_execution",
-        severity=Severity.HIGH,
+        rule_id="SC-EXEC-001", name="subprocess_execution", severity=Severity.HIGH,
         description="Subprocess execution with user-controlled or suspicious arguments.",
         pattern=_r(r"""subprocess\.(Popen|call|run|check_call|check_output)\s*\(\s*\["""),
         context_patterns=[_r(r"""(shell\s*=\s*True|os\.system|curl|wget|bash|sh|powershell|cmd\.exe|/bin/)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-EXEC-002",
-        name="os_system_execution",
-        severity=Severity.HIGH,
+        rule_id="SC-EXEC-002", name="os_system_execution", severity=Severity.HIGH,
         description="os.system() call — classic code execution vector.",
         pattern=_r(r"""os\.(system|popen|execv?p?e?)\s*\("""),
         context_patterns=[_r(r"""(curl|wget|bash|sh|powershell|cmd|nc|ncat|netcat|base64)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-EXEC-003",
-        name="shell_injection",
-        severity=Severity.CRITICAL,
+        rule_id="SC-EXEC-003", name="shell_injection", severity=Severity.CRITICAL,
         description="Shell injection pattern via subprocess with shell=True and string formatting.",
         pattern=_r(r"""subprocess\.(Popen|call|run|check_call|check_output)\s*\([^)]*shell\s*=\s*True[^)]*%[^)]*\)"""),
     ),
     SourceCodeRule(
-        rule_id="SC-EXEC-004",
-        name="eval_exec_dynamic_code",
-        severity=Severity.CRITICAL,
+        rule_id="SC-EXEC-004", name="eval_exec_dynamic_code", severity=Severity.CRITICAL,
         description="eval() or exec() on dynamic/decoded content — primary code execution technique in obfuscated malware.",
         pattern=_r(r"""\b(eval|exec)\s*\(\s*(base64|b64decode|codecs|zlib|gzip|marshal|__import__|compile|bytes|bytearray|decode)"""),
     ),
     SourceCodeRule(
-        rule_id="SC-EXEC-005",
-        name="compile_and_exec",
-        severity=Severity.HIGH,
+        rule_id="SC-EXEC-005", name="compile_and_exec", severity=Severity.HIGH,
         description="compile() followed by exec() — dynamic code loading pattern.",
         pattern=_r(r"""compile\s*\(.+\)\s*[\s\S]{0,200}exec\s*\("""),
     ),
     SourceCodeRule(
-        rule_id="SC-EXEC-006",
-        name="ctypes_shellcode",
-        severity=Severity.CRITICAL,
+        rule_id="SC-EXEC-006", name="ctypes_shellcode", severity=Severity.CRITICAL,
         description="ctypes used to write and execute raw shellcode — advanced persistence technique.",
         pattern=_r(r"""ctypes\.(windll|cdll|CDLL|WinDLL).*\.(VirtualAlloc|WriteProcessMemory|CreateThread|ShellExecuteW)"""),
     ),
     SourceCodeRule(
-        rule_id="SC-EXEC-007",
-        name="nodejs_child_process",
-        severity=Severity.HIGH,
+        rule_id="SC-EXEC-007", name="nodejs_child_process", severity=Severity.HIGH,
         description="Node.js child_process.exec/spawn with suspicious arguments.",
         pattern=_r(r"""(child_process|require\s*\(\s*['"]child_process['"]\s*\))\s*\.(exec|spawn|execSync|spawnSync)\s*\("""),
         context_patterns=[_r(r"""(curl|wget|powershell|cmd|bash|sh|/bin/|base64|nc |ncat|reverse)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-EXEC-008",
-        name="nodejs_eval_dynamic",
-        severity=Severity.CRITICAL,
+        rule_id="SC-EXEC-008", name="nodejs_eval_dynamic", severity=Severity.CRITICAL,
         description="Node.js eval() on decoded or fetched content.",
         pattern=_r(r"""eval\s*\(\s*(Buffer\.from|atob|require\s*\(\s*'crypto|Buffer\.alloc)"""),
     ),
-
-    # ── Obfuscation ───────────────────────────────────────────────────────────
     SourceCodeRule(
-        rule_id="SC-OBF-001",
-        name="base64_decoded_execution",
-        severity=Severity.HIGH,
+        rule_id="SC-OBF-001", name="base64_decoded_execution", severity=Severity.HIGH,
         description="base64-decoded payload executed at runtime.",
         pattern=_r(r"""(base64\.b64decode|b64decode|atob|Buffer\.from\s*\([^,]+,\s*['"]base64['"]\s*\))\s*\("""),
         context_patterns=[_r(r"""(exec|eval|compile|subprocess|os\.system|Popen|spawn)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-OBF-002",
-        name="hex_encoded_payload",
-        severity=Severity.HIGH,
+        rule_id="SC-OBF-002", name="hex_encoded_payload", severity=Severity.HIGH,
         description="Hex-encoded string decoded at runtime — common obfuscation layer.",
         pattern=_r(r"""(bytes\.fromhex|binascii\.unhexlify|codecs\.decode\s*\([^)]+,\s*['"]hex['"]|\\x[0-9a-f]{2}){3,}"""),
         context_patterns=[_r(r"""(exec|eval|compile|subprocess|os\.system)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-OBF-003",
-        name="zlib_compressed_payload",
-        severity=Severity.HIGH,
+        rule_id="SC-OBF-003", name="zlib_compressed_payload", severity=Severity.HIGH,
         description="zlib/gzip decompression of embedded payload — multi-layer obfuscation.",
         pattern=_r(r"""(zlib\.decompress|gzip\.decompress|lzma\.decompress)\s*\("""),
         context_patterns=[_r(r"""(exec|eval|compile|base64|b64decode)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-OBF-004",
-        name="marshal_deserialization",
-        severity=Severity.HIGH,
+        rule_id="SC-OBF-004", name="marshal_deserialization", severity=Severity.HIGH,
         description="marshal.loads() on unknown data — can execute arbitrary bytecode.",
         pattern=_r(r"""marshal\.loads?\s*\("""),
         context_patterns=[_r(r"""(exec|eval|base64|b64decode|decode)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-OBF-005",
-        name="string_character_join_obfuscation",
-        severity=Severity.MEDIUM,
+        rule_id="SC-OBF-005", name="string_character_join_obfuscation", severity=Severity.MEDIUM,
         description="String built by joining individual characters — common obfuscation to evade string scanners.",
         pattern=_r(r"""['"][a-zA-Z]['"].*join\s*\(\s*\["""),
     ),
     SourceCodeRule(
-        rule_id="SC-OBF-006",
-        name="rotated_base64_c2",
-        severity=Severity.CRITICAL,
+        rule_id="SC-OBF-006", name="rotated_base64_c2", severity=Severity.CRITICAL,
         description="Rotated base64 string decoded to recover C2 IP address — InvisibleFerret technique.",
         pattern=_r(r"""base64\.b64decode\s*\(\s*\w+\s*\[\d+:\]\s*\+\s*\w+\s*\[:\d+\]\s*\)"""),
     ),
     SourceCodeRule(
-        rule_id="SC-OBF-007",
-        name="single_char_variable_names",
-        severity=Severity.LOW,
+        rule_id="SC-OBF-007", name="single_char_variable_names", severity=Severity.LOW,
         description="Pervasive single-character variable names across large code blocks — indicator of automated obfuscation.",
         pattern=_r(r"""(?:^|\n)\s*(?:[A-Z_]\s*=\s*){6,}"""),
     ),
     SourceCodeRule(
-        rule_id="SC-OBF-008",
-        name="long_base64_blob",
-        severity=Severity.HIGH,
+        rule_id="SC-OBF-008", name="long_base64_blob", severity=Severity.HIGH,
         description="Long base64 string embedded in source — potential compressed/encrypted payload.",
         pattern=_r(r"""['\"][A-Za-z0-9+/=]{500,}['\"]"""),
     ),
-
-    # ── Credential and data theft ─────────────────────────────────────────────
     SourceCodeRule(
-        rule_id="SC-THEFT-001",
-        name="environment_variable_harvesting",
-        severity=Severity.HIGH,
+        rule_id="SC-THEFT-001", name="environment_variable_harvesting", severity=Severity.HIGH,
         description="Bulk environment variable collection — common in credential-stealing implants.",
         pattern=_r(r"""os\.environ(\.copy\(\)|\.items\(\))"""),
         context_patterns=[_r(r"""(requests\.|urllib|httpx|socket\.|post|send|write|open)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-THEFT-002",
-        name="ssh_key_exfiltration",
-        severity=Severity.CRITICAL,
+        rule_id="SC-THEFT-002", name="ssh_key_exfiltration", severity=Severity.CRITICAL,
         description="Reading SSH private key files — credential exfiltration.",
         pattern=_r(r"""\.ssh[/\\](id_rsa|id_ed25519|id_ecdsa|authorized_keys|known_hosts)"""),
         context_patterns=[_r(r"""(open|read|requests\.|urllib|socket\.)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-THEFT-003",
-        name="browser_credential_theft",
-        severity=Severity.CRITICAL,
+        rule_id="SC-THEFT-003", name="browser_credential_theft", severity=Severity.CRITICAL,
         description="Access to browser credential stores — password and session cookie theft.",
         pattern=_r(r"""(Login\s+Data|Cookies|Local\s+Extension\s+Settings|Sync\s+Extension\s+Settings|Web\s+Data|history|Saved\s+Passwords)"""),
         context_patterns=[_r(r"""(os\.path\.join|open|shutil\.copy|glob)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-THEFT-004",
-        name="aws_credential_access",
-        severity=Severity.CRITICAL,
+        rule_id="SC-THEFT-004", name="aws_credential_access", severity=Severity.CRITICAL,
         description="Access to AWS credentials file — cloud credential theft.",
         pattern=_r(r"""(\.aws[/\\]credentials|AWS_ACCESS_KEY|AWS_SECRET_ACCESS|aws_access_key_id)"""),
         context_patterns=[_r(r"""(open|read|requests\.|os\.environ)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-THEFT-005",
-        name="crypto_wallet_theft",
-        severity=Severity.CRITICAL,
+        rule_id="SC-THEFT-005", name="crypto_wallet_theft", severity=Severity.CRITICAL,
         description="Access to cryptocurrency wallet data — Exodus, Electrum, Atomic, MetaMask etc.",
         pattern=_r(r"""(exodus|electrum|atomic\s*wallet|metamask|phantom|solana|ledger|trezor|keystore\.json|wallet\.dat)""", re.IGNORECASE),
         context_patterns=[_r(r"""(os\.path\.join|shutil\.copy|open|glob|os\.walk)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-THEFT-006",
-        name="clipboard_monitoring",
-        severity=Severity.HIGH,
+        rule_id="SC-THEFT-006", name="clipboard_monitoring", severity=Severity.HIGH,
         description="Clipboard monitoring or hijacking — used to steal copied passwords/seeds.",
         pattern=_r(r"""(pyperclip\.paste|pyperclip\.waitForPaste|Clipboard\.GetText|xclip|xsel|pbpaste)"""),
     ),
     SourceCodeRule(
-        rule_id="SC-THEFT-007",
-        name="keylogger_hooks",
-        severity=Severity.CRITICAL,
+        rule_id="SC-THEFT-007", name="keylogger_hooks", severity=Severity.CRITICAL,
         description="Keyboard hooking via pyHook, pyWinhook, or pynput — keylogger implementation.",
         pattern=_r(r"""(pyHook|pyWinhook|pynput|HookKeyboard|HookManager|on_press\s*=|on_release\s*=|keyboard\.Listener)"""),
     ),
     SourceCodeRule(
-        rule_id="SC-THEFT-008",
-        name="screenshot_capture",
-        severity=Severity.HIGH,
+        rule_id="SC-THEFT-008", name="screenshot_capture", severity=Severity.HIGH,
         description="Screenshot capture at runtime — surveillance capability.",
         pattern=_r(r"""(ImageGrab\.grab|pyautogui\.screenshot|PIL\.ImageGrab|mss\.mss|screenshot\(\))"""),
         context_patterns=[_r(r"""(requests\.|urllib|socket\.|open|write|send)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-THEFT-009",
-        name="system_fingerprinting",
-        severity=Severity.HIGH,
+        rule_id="SC-THEFT-009", name="system_fingerprinting", severity=Severity.HIGH,
         description="System fingerprinting — collecting UUID, hostname, username, OS version for victim profiling.",
         pattern=_r(r"""(getnode\s*\(\)|gethostname\s*\(\)|getuser\s*\(\)|platform\.(node|version|release|system)\s*\(\))"""),
         context_patterns=[_r(r"""(sha256|hashlib|requests\.|socket\.|json\.dumps|post)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-THEFT-010",
-        name="git_config_access",
-        severity=Severity.HIGH,
+        rule_id="SC-THEFT-010", name="git_config_access", severity=Severity.HIGH,
         description="Accessing .gitconfig or git credentials — token exfiltration.",
         pattern=_r(r"""(\.gitconfig|\.git-credentials|git\s+config.*--global)"""),
         context_patterns=[_r(r"""(open|read|requests\.|urllib)""")],
         min_context_matches=1,
     ),
-
-    # ── Persistence ───────────────────────────────────────────────────────────
     SourceCodeRule(
-        rule_id="SC-PERS-001",
-        name="cron_modification",
-        severity=Severity.CRITICAL,
+        rule_id="SC-PERS-001", name="cron_modification", severity=Severity.CRITICAL,
         description="Crontab modification — persistence mechanism.",
         pattern=_r(r"""(crontab|/etc/cron\.(d|daily|hourly)|/var/spool/cron)"""),
         context_patterns=[_r(r"""(open|write|subprocess|os\.system)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-PERS-002",
-        name="launch_agent_persistence",
-        severity=Severity.CRITICAL,
+        rule_id="SC-PERS-002", name="launch_agent_persistence", severity=Severity.CRITICAL,
         description="macOS LaunchAgent/LaunchDaemon installation — persistence on macOS.",
         pattern=_r(r"""(Library[/\\]LaunchAgents|Library[/\\]LaunchDaemons|launchctl\s+(load|unload|bootstrap))"""),
         context_patterns=[_r(r"""(open|write|shutil\.copy|subprocess)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-PERS-003",
-        name="windows_registry_persistence",
-        severity=Severity.CRITICAL,
+        rule_id="SC-PERS-003", name="windows_registry_persistence", severity=Severity.CRITICAL,
         description="Windows registry modification for persistence.",
         pattern=_r(r"""(winreg|_winreg|OpenKey|SetValueEx|CurrentVersion[/\\]Run)"""),
     ),
     SourceCodeRule(
-        rule_id="SC-PERS-004",
-        name="startup_folder_write",
-        severity=Severity.HIGH,
+        rule_id="SC-PERS-004", name="startup_folder_write", severity=Severity.HIGH,
         description="Writing to Windows Startup folder — persistence mechanism.",
         pattern=_r(r"""(Start\s+Menu[/\\]Programs[/\\]Startup|Microsoft[/\\]Windows[/\\]Start\s+Menu)"""),
         context_patterns=[_r(r"""(open|write|shutil\.copy)""")],
         min_context_matches=1,
     ),
-
-    # ── Package structure abuse ───────────────────────────────────────────────
     SourceCodeRule(
-        rule_id="SC-PKG-001",
-        name="setup_py_download",
-        severity=Severity.HIGH,
+        rule_id="SC-PKG-001", name="setup_py_download", severity=Severity.HIGH,
         description="setup.py or install hook fetches remote content during installation.",
         pattern=_r(r"""(urllib\.request\.(urlopen|urlretrieve)|requests\.(get|post)|subprocess.*curl|subprocess.*wget)"""),
     ),
     SourceCodeRule(
-        rule_id="SC-PKG-002",
-        name="postinstall_script_execution",
-        severity=Severity.HIGH,
+        rule_id="SC-PKG-002", name="postinstall_script_execution", severity=Severity.HIGH,
         description="npm postinstall script executes shell commands.",
         pattern=_r(r"""['"](postinstall|preinstall|install)['"]\s*:\s*['"].*['"]\s*"""),
         context_patterns=[_r(r"""(curl|wget|bash|sh|powershell|python|node|exec|spawn)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-PKG-003",
-        name="silent_pip_self_install",
-        severity=Severity.HIGH,
+        rule_id="SC-PKG-003", name="silent_pip_self_install", severity=Severity.HIGH,
         description="Package silently installs additional packages at runtime — self-propagating behavior.",
         pattern=_r(r"""subprocess\.(check_call|run)\s*\(\s*\[.*(pip|pip3|pip install).*\]"""),
     ),
     SourceCodeRule(
-        rule_id="SC-PKG-004",
-        name="import_hook_injection",
-        severity=Severity.HIGH,
+        rule_id="SC-PKG-004", name="import_hook_injection", severity=Severity.HIGH,
         description="sys.meta_path or importlib hook injection — can intercept all imports.",
         pattern=_r(r"""sys\.meta_path\.(append|insert)|importlib\.util\.(spec_from_loader|module_from_spec)"""),
     ),
-
-    # ── C2 communication patterns ─────────────────────────────────────────────
     SourceCodeRule(
-        rule_id="SC-C2-001",
-        name="struct_framed_socket_protocol",
-        severity=Severity.HIGH,
+        rule_id="SC-C2-001", name="struct_framed_socket_protocol", severity=Severity.HIGH,
         description="Length-prefixed struct socket framing — binary C2 protocol (InvisibleFerret, BeaverTail).",
         pattern=_r(r"""struct\.pack\s*\(\s*['"]\s*>I\s*['"]\s*,"""),
         context_patterns=[_r(r"""sock(et)?\.(sendall|recv|connect)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-C2-002",
-        name="hardcoded_ip_address",
-        severity=Severity.MEDIUM,
+        rule_id="SC-C2-002", name="hardcoded_ip_address", severity=Severity.MEDIUM,
         description="Hardcoded IP address — potential C2 endpoint.",
         pattern=_r(r"""['\"](\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})['\"]"""),
         context_patterns=[_r(r"""(socket\.|requests\.|urllib|connect|PORT|HOST|host|port)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-C2-003",
-        name="reverse_shell_pattern",
-        severity=Severity.CRITICAL,
+        rule_id="SC-C2-003", name="reverse_shell_pattern", severity=Severity.CRITICAL,
         description="Reverse shell pattern — socket connected to remote with stdin/stdout/stderr redirect.",
         pattern=_r(r"""(dup2|os\.dup2|subprocess.*stdin=subprocess\.PIPE.*stdout=subprocess\.PIPE)"""),
         context_patterns=[_r(r"""socket\.(connect|AF_INET)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-C2-004",
-        name="netcat_style_connection",
-        severity=Severity.HIGH,
+        rule_id="SC-C2-004", name="netcat_style_connection", severity=Severity.HIGH,
         description="netcat-style connection pattern (ncat, nc command or equivalent socket usage).",
         pattern=_r(r"""(nc\s+-e|ncat\s+|netcat\s+|/dev/tcp/)"""),
     ),
-
-    # ── Steganography and covert channels ─────────────────────────────────────
     SourceCodeRule(
-        rule_id="SC-COVERT-001",
-        name="dns_covert_channel",
-        severity=Severity.HIGH,
+        rule_id="SC-COVERT-001", name="dns_covert_channel", severity=Severity.HIGH,
         description="DNS queries used for data exfiltration or C2 — covert channel technique.",
         pattern=_r(r"""socket\.getaddrinfo\s*\(.*\+.*\)"""),
         context_patterns=[_r(r"""(encode|b64|hex|split|join)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-COVERT-002",
-        name="steganography_image_payload",
-        severity=Severity.MEDIUM,
+        rule_id="SC-COVERT-002", name="steganography_image_payload", severity=Severity.MEDIUM,
         description="Image pixel manipulation with code execution — steganographic payload technique.",
         pattern=_r(r"""(getpixel|putpixel|PIL\.Image\.open).*(?:\n|.){0,200}(exec|eval|compile)"""),
     ),
-
-    # ── Enhanced JavaScript/Node.js specific rules ───────────────────────────
     SourceCodeRule(
-        rule_id="SC-JS-001",
-        name="nodejs_process_injection",
-        severity=Severity.CRITICAL,
+        rule_id="SC-JS-001", name="nodejs_process_injection", severity=Severity.CRITICAL,
         description="Node.js process.argv manipulation or injection — command line argument tampering.",
         pattern=_r(r"""process\.argv\s*\[.*\]\s*=|process\.argv\.splice|process\.argv\.push"""),
     ),
     SourceCodeRule(
-        rule_id="SC-JS-002",
-        name="nodejs_file_system_abuse",
-        severity=Severity.HIGH,
+        rule_id="SC-JS-002", name="nodejs_file_system_abuse", severity=Severity.HIGH,
         description="Suspicious file system operations in Node.js — potential file exfiltration or destruction.",
         pattern=_r(r"""fs\.(readFileSync|writeFileSync|readdirSync|unlinkSync|rmdirSync)\s*\("""),
         context_patterns=[_r(r"""(__dirname|__filename|process\.env|os\.homedir|path\.join)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-JS-003",
-        name="nodejs_child_process_abuse",
-        severity=Severity.CRITICAL,
+        rule_id="SC-JS-003", name="nodejs_child_process_abuse", severity=Severity.CRITICAL,
         description="Dangerous child_process usage — shell command execution with user input.",
         pattern=_r(r"""child_process\.(exec|spawn|execSync|spawnSync)\s*\(\s*.*\$\{.*\}|.*\+.*\)"""),
         context_patterns=[_r(r"""(shell.*true|bash|sh|cmd|powershell)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-JS-004",
-        name="nodejs_http_exfiltration",
-        severity=Severity.HIGH,
+        rule_id="SC-JS-004", name="nodejs_http_exfiltration", severity=Severity.HIGH,
         description="HTTP requests to suspicious domains — data exfiltration via Node.js.",
         pattern=_r(r"""https?\.(get|post|put|patch)\s*\(\s*['"`].*\.(onion|xyz|top|club|online|site)['"`]"""),
     ),
     SourceCodeRule(
-        rule_id="SC-JS-005",
-        name="nodejs_obfuscated_code",
-        severity=Severity.HIGH,
+        rule_id="SC-JS-005", name="nodejs_obfuscated_code", severity=Severity.HIGH,
         description="Base64 decoded and executed JavaScript — common obfuscation technique.",
         pattern=_r(r"""(Buffer\.from|atob)\s*\([^)]+\)\s*\.\s*(toString|eval|Function)"""),
     ),
     SourceCodeRule(
-        rule_id="SC-JS-006",
-        name="nodejs_environment_exfiltration",
-        severity=Severity.HIGH,
+        rule_id="SC-JS-006", name="nodejs_environment_exfiltration", severity=Severity.HIGH,
         description="Mass environment variable collection in Node.js — credential harvesting.",
         pattern=_r(r"""process\.env|Object\.keys\(process\.env\)"""),
         context_patterns=[_r(r"""(https?\.|fetch|axios|request)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-JS-007",
-        name="nodejs_crypto_mining",
-        severity=Severity.CRITICAL,
+        rule_id="SC-JS-007", name="nodejs_crypto_mining", severity=Severity.CRITICAL,
         description="Cryptocurrency mining setup — resource theft via Node.js.",
         pattern=_r(r"""(miner|mining|coin|crypto|hashrate|blockchain).*start|worker_threads|cluster"""),
         context_patterns=[_r(r"""(setInterval|setTimeout|while.*true|for.*;;)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-JS-008",
-        name="nodejs_persistence_via_npm",
-        severity=Severity.CRITICAL,
+        rule_id="SC-JS-008", name="nodejs_persistence_via_npm", severity=Severity.CRITICAL,
         description="NPM script hooks for persistence — postinstall scripts that maintain access.",
         pattern=_r(r"""['"]scripts['"]\s*:\s*\{[^}]*postinstall.*:(.*curl|wget|bash|sh|node|python)"""),
     ),
     SourceCodeRule(
-        rule_id="SC-JS-009",
-        name="nodejs_remote_code_execution",
-        severity=Severity.CRITICAL,
+        rule_id="SC-JS-009", name="nodejs_remote_code_execution", severity=Severity.CRITICAL,
         description="Remote code execution via eval or Function constructor in Node.js.",
         pattern=_r(r"""(eval|Function|setTimeout|setInterval)\s*\(\s*.*(fetch|axios|https?\.get|require).*['"`]"""),
     ),
     SourceCodeRule(
-        rule_id="SC-JS-010",
-        name="nodejs_websocket_c2",
-        severity=Severity.HIGH,
+        rule_id="SC-JS-010", name="nodejs_websocket_c2", severity=Severity.HIGH,
         description="WebSocket connections to suspicious endpoints — C2 communication channel.",
         pattern=_r(r"""new\s+WebSocket\s*\(\s*['"`].*(ws://|wss://).*['"`]\s*\)"""),
         context_patterns=[_r(r"""(onmessage|send|process\.env|navigator\.userAgent)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-JS-011",
-        name="nodejs_browser_fingerprinting",
-        severity=Severity.MEDIUM,
+        rule_id="SC-JS-011", name="nodejs_browser_fingerprinting", severity=Severity.MEDIUM,
         description="Browser fingerprinting in Node.js environment — victim profiling.",
         pattern=_r(r"""(navigator\.|screen\.|window\.|document\.|localStorage|sessionStorage)"""),
         context_patterns=[_r(r"""(userAgent|platform|language|cookie|referrer)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-JS-012",
-        name="nodejs_package_hijacking",
-        severity=Severity.CRITICAL,
+        rule_id="SC-JS-012", name="nodejs_package_hijacking", severity=Severity.CRITICAL,
         description="Package.json manipulation or dependency confusion setup.",
         pattern=_r(r"""['"]dependencies['"]\s*:\s*\{[^}]*['"`][^'"`]*['"`]\s*:\s*['"`]file:|\.\/\.\./"""),
     ),
     SourceCodeRule(
-        rule_id="SC-JS-013",
-        name="nodejs_obfuscated_strings",
-        severity=Severity.MEDIUM,
+        rule_id="SC-JS-013", name="nodejs_obfuscated_strings", severity=Severity.MEDIUM,
         description="String concatenation or character code obfuscation — anti-analysis technique.",
         pattern=_r(r"""String\.fromCharCode\s*\([^)]+\)|(['"`][^'"`]*['"`]\s*\+\s*){3,}"""),
         context_patterns=[_r(r"""(eval|Function|setTimeout|setInterval)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-JS-014",
-        name="nodejs_suspicious_imports",
-        severity=Severity.MEDIUM,
+        rule_id="SC-JS-014", name="nodejs_suspicious_imports", severity=Severity.MEDIUM,
         description="Suspicious module imports that could be used for malicious purposes.",
         pattern=_r(r"""require\s*\(\s*['"`](crypto|fs|child_process|os|net|http|https|dns|vm)['"`]\s*\)"""),
         context_patterns=[_r(r"""(eval|exec|spawn|writeFile|unlink|rmdir)""")],
         min_context_matches=1,
     ),
     SourceCodeRule(
-        rule_id="SC-JS-015",
-        name="nodejs_timing_attacks",
-        severity=Severity.LOW,
+        rule_id="SC-JS-015", name="nodejs_timing_attacks", severity=Severity.LOW,
         description="Timing-based attacks or anti-debugging via performance monitoring.",
         pattern=_r(r"""performance\.now|Date\.now|process\.hrtime"""),
         context_patterns=[_r(r"""(debugger|console\.|throw|Error)""")],
@@ -872,10 +689,6 @@ SOURCE_CODE_RULES: List[SourceCodeRule] = [
     ),
 ]
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  METADATA ANALYSIS RULES
-# ─────────────────────────────────────────────────────────────────────────────
 
 class MetadataRule(ABC):
     rule_id: str
@@ -1019,7 +832,6 @@ class VersionBumpAnomalyRule(MetadataRule):
 
 
 class NameSimilarToPopularRule(MetadataRule):
-    """Checks metadata author/homepage against known legitimate owners."""
     rule_id = "META-007"
     name = "homepage_mismatch"
     severity = Severity.MEDIUM
@@ -1082,13 +894,11 @@ METADATA_RULES: List[MetadataRule] = [
 ]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  TYPOSQUATTING DETECTION
-# ─────────────────────────────────────────────────────────────────────────────
-
 def _levenshtein(s1: str, s2: str) -> int:
+    # FIX: swap inline instead of recursing, avoiding potential stack overflow
+    # on pathologically long package names.
     if len(s1) < len(s2):
-        return _levenshtein(s2, s1)
+        s1, s2 = s2, s1
     if not s2:
         return len(s1)
     prev = list(range(len(s2) + 1))
@@ -1107,7 +917,6 @@ def detect_typosquatting(package: Package) -> Optional[RuleMatch]:
         POPULAR_PYPI_PACKAGES if package.ecosystem == "pypi" else POPULAR_NPM_PACKAGES
     )
 
-    # Check against known campaign variants first (exact hit)
     for legit, variants in KNOWN_TYPOSQUAT_CAMPAIGNS.items():
         if package.name.lower() in [v.lower() for v in variants]:
             return RuleMatch(
@@ -1119,11 +928,10 @@ def detect_typosquatting(package: Package) -> Optional[RuleMatch]:
                 evidence=f"'{package.name}' is a known typosquat of '{legit}'",
             )
 
-    # Levenshtein distance against popular package list
     for legit in popular:
         legit_norm = legit.lower().replace("-", "").replace("_", "").replace(".", "")
         if legit_norm == name:
-            continue  # same package
+            continue
         dist = _levenshtein(name, legit_norm)
         threshold = 1 if len(legit_norm) <= 5 else 2
         if 0 < dist <= threshold:
@@ -1139,7 +947,6 @@ def detect_typosquatting(package: Package) -> Optional[RuleMatch]:
                     evidence=f"'{package.name}' vs '{legit}' — edit distance {dist}",
                 )
 
-    # Namespace confusion (e.g. @npm-org/legit-pkg vs legit-pkg)
     if package.ecosystem == "npm" and package.name.startswith("@"):
         bare = package.name.split("/", 1)[-1].lower()
         if bare in {p.lower() for p in POPULAR_NPM_PACKAGES}:
@@ -1154,10 +961,6 @@ def detect_typosquatting(package: Package) -> Optional[RuleMatch]:
 
     return None
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  MANIFEST PARSERS
-# ─────────────────────────────────────────────────────────────────────────────
 
 class ManifestParser:
 
@@ -1214,8 +1017,8 @@ class ManifestParser:
             for pkg_path, info in data["packages"].items():
                 if not pkg_path:
                     continue
-                name = pkg_path.lstrip("node_modules/").lstrip("\\")
-                name = re.sub(r'^node_modules/', '', name)
+                # FIX: use removeprefix-style re.sub instead of broken lstrip
+                name = re.sub(r'^node_modules/', '', pkg_path.lstrip("\\"))
                 version = info.get("version", "unknown")
                 packages.append(Package(
                     name=name, version=version,
@@ -1254,13 +1057,11 @@ class ManifestParser:
                     source_file=path, ecosystem="pypi",
                 ))
 
-        # PEP 621
         for dep in data.get("project", {}).get("dependencies", []):
             _add(dep)
         for group_deps in data.get("project", {}).get("optional-dependencies", {}).values():
             for dep in group_deps:
                 _add(dep)
-        # Poetry
         for section in ["dependencies", "dev-dependencies", "group"]:
             section_data = data.get("tool", {}).get("poetry", {}).get(section, {})
             if isinstance(section_data, dict):
@@ -1279,7 +1080,6 @@ class ManifestParser:
                             version=ManifestParser._clean_version(spec.get("version", "latest")),
                             source_file=path, ecosystem="pypi",
                         ))
-        # build-system requires
         for dep in data.get("build-system", {}).get("requires", []):
             _add(dep)
         return packages
@@ -1293,9 +1093,7 @@ class ManifestParser:
             line = raw_line.strip()
             if not line or line.startswith(("#", "-r", "-c", "--")):
                 continue
-            # Strip inline comments
             line = line.split("#")[0].strip()
-            # Handle extras: package[extra]>=version
             m = re.match(
                 r'^([A-Za-z0-9_.-]+)(\[[^\]]*\])?\s*([><=!~,\s][^;]*)?', line
             )
@@ -1311,12 +1109,7 @@ class ManifestParser:
         return packages
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  ADVISORY DATABASE CLIENTS
-# ─────────────────────────────────────────────────────────────────────────────
-
 class OSVClient:
-    """Client for the Open Source Vulnerability (OSV) database."""
     BASE_URL = "https://api.osv.dev/v1"
 
     def __init__(self, session: "requests.Session"):
@@ -1327,8 +1120,6 @@ class OSVClient:
 
     def query(self, pkg: Package) -> List[RuleMatch]:
         matches: List[RuleMatch] = []
-
-        # Input validation
         if not pkg.name or not isinstance(pkg.name, str) or len(pkg.name) > 200:
             log.warning(f"Invalid package name: {pkg.name}")
             return matches
@@ -1355,37 +1146,27 @@ class OSVClient:
             vuln_id: str = vuln.get("id", "")
             if not vuln_id.startswith("MAL-"):
                 continue
-
             affected_versions: List[str] = []
             for affected in vuln.get("affected", []):
                 affected_versions.extend(affected.get("versions", []))
-
             summary = vuln.get("summary") or vuln.get("details", "No summary.")[:200]
             url = f"https://osv.dev/vulnerability/{vuln_id}"
-
             matches.append(RuleMatch(
                 rule_id=vuln_id,
                 rule_name="osv_malware_advisory",
                 severity=Severity.CRITICAL,
                 category="advisory",
                 description=f"OSV malware advisory: {summary}",
-                evidence=(
-                    f"Affected versions: {', '.join(affected_versions[:10]) or 'all'} | {url}"
-                ),
+                evidence=f"Affected versions: {', '.join(affected_versions[:10]) or 'all'} | {url}",
             ))
         return matches
 
 
 class GHSAClient:
-    """
-    Client for GitHub Security Advisory malware database.
-    Uses GraphQL API (with token) or public REST API (without token).
-    Falls back to HTML scraping only if both API paths fail.
-    """
     ADVISORY_URL_TEMPLATE = (
         "https://github.com/advisories?query=type%3Amalware+ecosystem%3A{eco}"
     )
-    GRAPHQL_URL  = "https://api.github.com/graphql"
+    GRAPHQL_URL       = "https://api.github.com/graphql"
     ADVISORY_REST_URL = "https://api.github.com/advisories"
 
     _cache: Dict[str, List[Dict]] = {}
@@ -1396,32 +1177,24 @@ class GHSAClient:
     def _fetch_advisories(self, ecosystem: str) -> List[Dict]:
         if ecosystem in self._cache:
             return self._cache[ecosystem]
-
         token = os.environ.get("GITHUB_TOKEN")
         advisories: List[Dict] = []
-
         if token:
             advisories = self._fetch_via_graphql(ecosystem, token)
         else:
             log.info("No GITHUB_TOKEN found — using unauthenticated REST API (rate-limited to 60 req/hr).")
             advisories = self._fetch_via_rest(ecosystem)
-
-        # Last resort: original HTML scraper (fragile but better than nothing)
         if not advisories:
             log.warning("API fetch returned no results — falling back to HTML scraper.")
             advisories = self._fetch_via_scrape(ecosystem)
-
         self._cache[ecosystem] = advisories
         return advisories
 
     def _fetch_via_graphql(self, ecosystem: str, token: str) -> List[Dict]:
-        """Stable, paginated GraphQL API — requires GITHUB_TOKEN env var."""
         eco_map = {"npm": "NPM", "pip": "PIP"}
         gh_ecosystem = eco_map.get(ecosystem, ecosystem.upper())
-
         advisories: List[Dict] = []
         cursor = None
-
         query = """
         query($cursor: String, $ecosystem: SecurityAdvisoryEcosystem) {
           securityAdvisories(
@@ -1432,9 +1205,7 @@ class GHSAClient:
           ) {
             pageInfo { hasNextPage endCursor }
             nodes {
-              ghsaId
-              summary
-              severity
+              ghsaId summary severity
               vulnerabilities(first: 10) {
                 nodes { package { name ecosystem } }
               }
@@ -1443,30 +1214,22 @@ class GHSAClient:
           }
         }
         """
-
-        headers = {
-            "Authorization": f"bearer {token}",
-            "Content-Type": "application/json",
-        }
-
+        headers = {"Authorization": f"bearer {token}", "Content-Type": "application/json"}
         while True:
             try:
                 resp = self.session.post(
                     self.GRAPHQL_URL,
                     json={"query": query, "variables": {"cursor": cursor, "ecosystem": gh_ecosystem}},
-                    headers=headers,
-                    timeout=20,
+                    headers=headers, timeout=20,
                 )
                 resp.raise_for_status()
                 data = resp.json()
             except Exception as e:
                 log.warning(f"GHSA GraphQL fetch failed: {e}")
                 break
-
             if "errors" in data:
                 log.warning(f"GHSA GraphQL errors: {data['errors']}")
                 break
-
             nodes = data.get("data", {}).get("securityAdvisories", {})
             for node in nodes.get("nodes", []):
                 pkg_names: Set[str] = set()
@@ -1474,93 +1237,70 @@ class GHSAClient:
                     pkg = vuln.get("package", {})
                     if pkg.get("name"):
                         pkg_names.add(pkg["name"].lower())
-
                 refs = [r["url"] for r in node.get("references", []) if r.get("url")]
                 ghsa_id = node["ghsaId"]
                 ghsa_url = next(
                     (u for u in refs if "github.com/advisories" in u),
                     f"https://github.com/advisories/{ghsa_id}",
                 )
-
                 advisories.append({
-                    "id":          ghsa_id,
-                    "title":       node.get("summary", ""),
+                    "id": ghsa_id, "title": node.get("summary", ""),
                     "description": node.get("summary", ""),
-                    "severity":    node.get("severity", "UNKNOWN"),
-                    "packages":    pkg_names,
-                    "url":         ghsa_url,
+                    "severity": node.get("severity", "UNKNOWN"),
+                    "packages": pkg_names, "url": ghsa_url,
                 })
-
             page_info = nodes.get("pageInfo", {})
             if not page_info.get("hasNextPage"):
                 break
             cursor = page_info.get("endCursor")
-
         log.info(f"GHSA GraphQL: fetched {len(advisories)} advisories for {ecosystem}")
         return advisories
 
     def _fetch_via_rest(self, ecosystem: str) -> List[Dict]:
-        """Public REST API — no token needed, but rate-limited to 60 req/hr."""
         advisories: List[Dict] = []
         page = 1
-
         while True:
             try:
                 resp = self.session.get(
                     self.ADVISORY_REST_URL,
-                    params={
-                        "type":      "malware",
-                        "ecosystem": ecosystem.lower(),
-                        "per_page":  100,
-                        "page":      page,
-                    },
+                    params={"type": "malware", "ecosystem": ecosystem.lower(),
+                            "per_page": 100, "page": page},
                     timeout=20,
                 )
                 if resp.status_code in (403, 429):
-                    log.warning(
-                        "GHSA REST API rate-limited — partial results only. "
-                        "Set GITHUB_TOKEN env var to avoid this."
-                    )
+                    log.warning("GHSA REST API rate-limited — partial results only. Set GITHUB_TOKEN env var.")
                     break
                 resp.raise_for_status()
                 batch = resp.json()
             except Exception as e:
                 log.warning(f"GHSA REST fetch failed (page {page}): {e}")
                 break
-
             if not batch:
                 break
-
             for adv in batch:
                 pkg_names: Set[str] = set()
                 for vuln in adv.get("vulnerabilities", []):
                     pkg = vuln.get("package", {})
                     if pkg.get("name"):
                         pkg_names.add(pkg["name"].lower())
-
                 ghsa_id = adv.get("ghsa_id", "")
                 advisories.append({
-                    "id":          ghsa_id,
-                    "title":       adv.get("summary", ""),
+                    "id": ghsa_id, "title": adv.get("summary", ""),
                     "description": adv.get("description", ""),
-                    "severity":    adv.get("severity", "UNKNOWN").upper(),
-                    "packages":    pkg_names,
-                    "url":         adv.get("html_url", f"https://github.com/advisories/{ghsa_id}"),
+                    "severity": adv.get("severity", "UNKNOWN").upper(),
+                    "packages": pkg_names,
+                    "url": adv.get("html_url", f"https://github.com/advisories/{ghsa_id}"),
                 })
-
             if len(batch) < 100:
                 break
             page += 1
-
         log.info(f"GHSA REST: fetched {len(advisories)} advisories for {ecosystem}")
         return advisories
 
     def _fetch_via_scrape(self, ecosystem: str) -> List[Dict]:
-        """Original HTML scraper — fragile fallback only."""
         if not HAS_BS4:
             log.warning("beautifulsoup4 not installed — skipping GHSA scrape.")
             return []
-
         url = self.ADVISORY_URL_TEMPLATE.format(eco=ecosystem)
         advisories: List[Dict] = []
         try:
@@ -1577,23 +1317,17 @@ class GHSAClient:
                 desc = p.get_text(strip=True) if p else ""
                 sev_span = card.find("span", class_="Label")
                 severity = sev_span.get_text(strip=True) if sev_span else "Unknown"
-
                 pkg_names: Set[str] = set()
                 for m in re.finditer(r'[`"\']([a-zA-Z0-9_@/.-]{2,64})[`"\']',
                                      title + " " + desc):
                     pkg_names.add(m.group(1).lower())
-
                 advisories.append({
-                    "id":          adv_id,
-                    "title":       title,
-                    "description": desc,
-                    "severity":    severity,
-                    "packages":    pkg_names,
-                    "url":         f"https://github.com/advisories/{adv_id}",
+                    "id": adv_id, "title": title, "description": desc,
+                    "severity": severity, "packages": pkg_names,
+                    "url": f"https://github.com/advisories/{adv_id}",
                 })
         except Exception as e:
             log.warning(f"GHSA scrape failed for {ecosystem}: {e}")
-
         return advisories
 
     def query(self, pkg: Package) -> List[RuleMatch]:
@@ -1601,33 +1335,22 @@ class GHSAClient:
         advisories = self._fetch_advisories(eco)
         matches: List[RuleMatch] = []
         name_lower = pkg.name.lower()
-
         for adv in advisories:
-            matched = False
-            if name_lower in adv["packages"]:
-                matched = True
-
+            matched = name_lower in adv["packages"]
             if not matched:
                 text = (adv["title"] + " " + adv["description"]).lower()
                 pat = r'(?:^|[\s`"\',;()\[\]])' + re.escape(name_lower) + r'(?=[\s`"\',;()\[\]]|$)'
                 if re.search(pat, text):
                     matched = True
-
             if matched:
                 matches.append(RuleMatch(
-                    rule_id=adv["id"],
-                    rule_name="ghsa_malware_advisory",
-                    severity=Severity.CRITICAL,
-                    category="advisory",
+                    rule_id=adv["id"], rule_name="ghsa_malware_advisory",
+                    severity=Severity.CRITICAL, category="advisory",
                     description=f"GHSA malware advisory: {adv['title']}",
                     evidence=f"Severity: {adv['severity']} | {adv['url']}",
                 ))
         return matches
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  REGISTRY METADATA FETCHER
-# ─────────────────────────────────────────────────────────────────────────────
 
 class RegistryClient:
 
@@ -1664,10 +1387,6 @@ class RegistryClient:
         return self.fetch_pypi(pkg) if pkg.ecosystem == "pypi" else self.fetch_npm(pkg)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  SOURCE CODE FETCHER + ANALYZER  (--deep mode)
-# ─────────────────────────────────────────────────────────────────────────────
-
 class SourceAnalyzer:
     """
     Downloads and analyzes the package source archive.
@@ -1700,7 +1419,6 @@ class SourceAnalyzer:
             releases = metadata.get("releases", {})
             ver_files = releases.get(pkg.version, []) if pkg.version != "latest" else []
             if not ver_files:
-                # Use latest release
                 info = metadata.get("info", {})
                 ver_files = releases.get(info.get("version", ""), [])
             for f in ver_files:
@@ -1712,66 +1430,65 @@ class SourceAnalyzer:
         return None
 
     def _download(self, url: str, dest_dir: str) -> Optional[str]:
+        # FIX: size cap and f.write are now both inside the with-open block.
+        MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
         try:
             resp = self.session.get(url, timeout=60, stream=True)
             resp.raise_for_status()
             filename = url.split("/")[-1].split("?")[0]
             path = os.path.join(dest_dir, filename)
+
+            content_length = resp.headers.get("content-length")
+            if content_length and int(content_length) > MAX_DOWNLOAD_BYTES:
+                log.warning("Server reports file too large, aborting")
+                return None
+
+            total = 0
             with open(path, "wb") as f:
-                MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024  # 50MB
-            
-                content_length = resp.headers.get("content-length")
-                if content_length and int(content_length) > MAX_DOWNLOAD_BYTES:
-                    log.warning("Server reports file too large, aborting")
-                    return None
-            
-                total = 0
-            
                 for chunk in resp.iter_content(65536):
                     if not chunk:
                         continue
-            
                     total += len(chunk)
-            
                     if total > MAX_DOWNLOAD_BYTES:
                         log.warning("Download exceeded size limit, aborting")
                         return None
-            
                     f.write(chunk)
             return path
         except Exception as e:
             log.warning(f"Source download failed: {e}")
             return None
 
-def _extract(self, archive_path: str, dest_dir: str) -> Optional[str]:
-    extract_dir = os.path.join(dest_dir, "extracted")
-    os.makedirs(extract_dir, exist_ok=True)
-
-    try:
-        if tarfile.is_tarfile(archive_path):
-            with tarfile.open(archive_path, "r:*") as t:
-                t.extractall(extract_dir, filter='data')
-            return extract_dir
+    def _extract(self, archive_path: str, dest_dir: str) -> Optional[str]:
+        # FIX 1: properly indented as a method of SourceAnalyzer.
+        # FIX 2: tar branch returns before zip check (no dead code).
+        # FIX 3: zip slip path validation is now reachable.
+        extract_dir = os.path.join(dest_dir, "extracted")
+        os.makedirs(extract_dir, exist_ok=True)
+        try:
+            if tarfile.is_tarfile(archive_path):
+                with tarfile.open(archive_path, "r:*") as t:
+                    t.extractall(extract_dir, filter='data')
+                return extract_dir
 
             if zipfile.is_zipfile(archive_path):
-              with zipfile.ZipFile(archive_path) as z:
-                  for member in z.infolist():
-                      member_path = os.path.realpath(
-                          os.path.join(extract_dir, member.filename)
-                      )
-  
-                      if not member_path.startswith(os.path.realpath(extract_dir)):
-                          log.warning(f"Blocked zip slip attempt: {member.filename}")
-                          continue
-  
-                      z.extract(member, extract_dir)
+                with zipfile.ZipFile(archive_path) as z:
+                    for member in z.infolist():
+                        member_path = os.path.realpath(
+                            os.path.join(extract_dir, member.filename)
+                        )
+                        if not member_path.startswith(
+                            os.path.realpath(extract_dir)
+                        ):
+                            log.warning(
+                                f"Blocked zip slip attempt: {member.filename}"
+                            )
+                            continue
+                        z.extract(member, extract_dir)
+                return extract_dir
 
-              return extract_dir
-
-    except Exception as e:
-        log.warning(f"Archive extraction failed: {e}")
-
-    return None
+        except Exception as e:
+            log.warning(f"Archive extraction failed: {e}")
+        return None
 
     def _iter_source_files(self, root: str) -> Generator[str, None, None]:
         for dirpath, _, filenames in os.walk(root):
@@ -1792,10 +1509,8 @@ def _extract(self, archive_path: str, dest_dir: str) -> Optional[str]:
 
     def _scan_content(self, content: str, file_path: str) -> List[RuleMatch]:
         matches: List[RuleMatch] = []
-        lines = content.splitlines()
         for rule in SOURCE_CODE_RULES:
             for match_obj, evidence in rule.matches(content):
-                # Calculate line number
                 line_no = content[:match_obj.start()].count("\n") + 1
                 matches.append(RuleMatch(
                     rule_id=rule.rule_id,
@@ -1809,10 +1524,6 @@ def _extract(self, archive_path: str, dest_dir: str) -> Optional[str]:
                 ))
         return matches
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  REMOTE FILE FETCHER
-# ─────────────────────────────────────────────────────────────────────────────
 
 class RemoteFetcher:
 
@@ -1844,10 +1555,6 @@ class RemoteFetcher:
         return path, filename
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  MAIN SCANNER ORCHESTRATOR
-# ─────────────────────────────────────────────────────────────────────────────
-
 class LaocoonScanner:
 
     def __init__(self, deep: bool = False, skip_advisory: bool = False,
@@ -1865,28 +1572,23 @@ class LaocoonScanner:
         result = PackageResult(package=pkg)
         t0 = time.monotonic()
 
-        # 1. Advisory databases
         if not self.skip_advisory:
             for match in self.osv.query(pkg):
                 result.add_match(match)
-                # Collect unique advisory URLs
                 if "osv.dev" in match.evidence:
                     url_m = re.search(r'https://\S+', match.evidence)
                     if url_m:
                         result.advisory_urls.append(url_m.group(0))
-
             for match in self.ghsa.query(pkg):
                 result.add_match(match)
                 url_m = re.search(r'https://\S+', match.evidence)
                 if url_m:
                     result.advisory_urls.append(url_m.group(0))
 
-        # 2. Typosquatting detection
         typo_match = detect_typosquatting(pkg)
         if typo_match:
             result.add_match(typo_match)
 
-        # 3. Metadata analysis (fetch from registry)
         if not self.skip_metadata:
             metadata = self.registry.fetch(pkg)
             if metadata.get("_not_found"):
@@ -1901,10 +1603,8 @@ class LaocoonScanner:
                              f"{'PyPI' if pkg.ecosystem == 'pypi' else 'npm'}",
                 ))
             else:
-                # Run npm-style scripts check directly on manifest extras
                 if pkg.extras.get("scripts"):
                     metadata["scripts"] = pkg.extras["scripts"]
-
                 for rule in METADATA_RULES:
                     try:
                         m = rule.analyze(metadata, pkg)
@@ -1912,8 +1612,6 @@ class LaocoonScanner:
                             result.add_match(m)
                     except Exception as e:
                         log.debug(f"Metadata rule {rule.rule_id} error: {e}")
-
-                # Deep source code analysis
                 if self.deep:
                     src_matches = self.source_analyzer.analyze_package(pkg, metadata)
                     for m in src_matches:
@@ -1938,13 +1636,9 @@ class LaocoonScanner:
             result = self.scan_package(pkg)
             results.append(result)
         if progress:
-            print(file=sys.stderr)  # newline after progress
+            print(file=sys.stderr)
         return results
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  REPORTING
-# ─────────────────────────────────────────────────────────────────────────────
 
 SEVERITY_SORT_KEY = {
     Severity.CRITICAL: 0,
@@ -1955,22 +1649,14 @@ SEVERITY_SORT_KEY = {
 }
 
 ANSI = {
-    "reset":   "\033[0m",
-    "bold":    "\033[1m",
-    "dim":     "\033[2m",
-    "red":     "\033[91m",
-    "bred":    "\033[1;91m",
-    "yellow":  "\033[93m",
-    "blue":    "\033[94m",
-    "cyan":    "\033[96m",
-    "green":   "\033[92m",
-    "grey":    "\033[37m",
-    "white":   "\033[97m",
+    "reset": "\033[0m", "bold": "\033[1m", "dim": "\033[2m",
+    "red": "\033[91m", "bred": "\033[1;91m", "yellow": "\033[93m",
+    "blue": "\033[94m", "cyan": "\033[96m", "green": "\033[92m",
+    "grey": "\033[37m", "white": "\033[97m",
 }
 
 def strip_ansi(text: str) -> str:
     return re.sub(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])', '', text)
-
 
 def _severity_color(sev: Severity, no_color: bool) -> str:
     if no_color:
@@ -1995,7 +1681,6 @@ def print_terminal_report(results: List[PackageResult],
 
     malicious = [r for r in results if r.is_malicious]
     total_findings = sum(len(r.matches) for r in malicious)
-
     SEP = "─" * 78
 
     print(f"\n{SEP}")
@@ -2013,7 +1698,6 @@ def print_terminal_report(results: List[PackageResult],
         print(SEP)
         return
 
-    # Severity summary
     sev_counts: Dict[Severity, int] = defaultdict(int)
     for r in malicious:
         for m in r.matches:
@@ -2027,10 +1711,8 @@ def print_terminal_report(results: List[PackageResult],
     print()
     print(SEP)
 
-    # Per-package findings
     for result in sorted(malicious,
-                         key=lambda r: SEVERITY_SORT_KEY.get(r.highest_severity,
-                                                              99)):
+                         key=lambda r: SEVERITY_SORT_KEY.get(r.highest_severity, 99)):
         col = _severity_color(result.highest_severity, no_color)
         print(f"\n  {bold}Package{reset} : {bold}{result.package.name}"
               f"@{result.package.version}{reset}")
@@ -2040,7 +1722,6 @@ def print_terminal_report(results: List[PackageResult],
             for url in result.advisory_urls[:3]:
                 print(f"  {bold}Advisory{reset} : {url}")
         print(f"  {bold}Findings{reset} :")
-
         for match in sorted(result.matches,
                             key=lambda m: SEVERITY_SORT_KEY.get(m.severity, 99)):
             sev_col = _severity_color(match.severity, no_color)
@@ -2048,7 +1729,6 @@ def print_terminal_report(results: List[PackageResult],
             prefix = f"    {sev_col}{tag:12}{reset}"
             print(f"{prefix} {bold}{match.rule_id}{reset}  {match.rule_name}")
             print(f"    {dim}{match.description}{reset}")
-            # Truncate evidence for readability
             ev = match.evidence[:180].replace("\n", " ")
             print(f"    Evidence : {ev}")
             if match.file_path:
@@ -2077,10 +1757,6 @@ def generate_json_report(results: List[PackageResult],
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  CLI
-# ─────────────────────────────────────────────────────────────────────────────
-
 BANNER = """\
 =============================================================================
   Laocoon v2.0 | Supply Chain Security Scanner
@@ -2102,28 +1778,17 @@ def main() -> int:
           Laocoon requirements.txt --json --no-banner
         """),
     )
-    parser.add_argument("files", nargs="*",
-                        help="Manifest files to scan.")
-    parser.add_argument("--remote", "-r",
-                        help="Scan a manifest file at a remote GitHub/GitLab URL.")
-    parser.add_argument("--ecosystem", choices=["npm", "pypi"],
-                        help="Override ecosystem detection.")
-    parser.add_argument("--deep", action="store_true",
-                        help="Download and statically analyze package source archives.")
-    parser.add_argument("--output", "-o",
-                        help="Write JSON report to this file.")
-    parser.add_argument("--json", "-j", action="store_true",
-                        help="Machine-readable JSON output only (suppresses terminal report).")
-    parser.add_argument("--no-color", action="store_true",
-                        help="Disable ANSI color codes.")
-    parser.add_argument("--no-banner", action="store_true",
-                        help="Suppress banner.")
-    parser.add_argument("--skip-advisory", action="store_true",
-                        help="Skip OSV and GHSA advisory lookups (offline mode).")
-    parser.add_argument("--skip-metadata", action="store_true",
-                        help="Skip registry metadata fetching.")
-    parser.add_argument("--verbose", action="store_true",
-                        help="Enable verbose debug logging to stderr.")
+    parser.add_argument("files", nargs="*", help="Manifest files to scan.")
+    parser.add_argument("--remote", "-r", help="Scan a manifest file at a remote GitHub/GitLab URL.")
+    parser.add_argument("--ecosystem", choices=["npm", "pypi"], help="Override ecosystem detection.")
+    parser.add_argument("--deep", action="store_true", help="Download and statically analyze package source archives.")
+    parser.add_argument("--output", "-o", help="Write JSON report to this file.")
+    parser.add_argument("--json", "-j", action="store_true", help="Machine-readable JSON output only.")
+    parser.add_argument("--no-color", action="store_true", help="Disable ANSI color codes.")
+    parser.add_argument("--no-banner", action="store_true", help="Suppress banner.")
+    parser.add_argument("--skip-advisory", action="store_true", help="Skip OSV and GHSA advisory lookups.")
+    parser.add_argument("--skip-metadata", action="store_true", help="Skip registry metadata fetching.")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose debug logging to stderr.")
     args = parser.parse_args()
 
     if args.verbose:
@@ -2133,8 +1798,7 @@ def main() -> int:
         parser.error("Provide at least one manifest file or use --remote.")
 
     if not HAS_REQUESTS:
-        print("ERROR: 'requests' is required. Install with: pip install requests",
-              file=sys.stderr)
+        print("ERROR: 'requests' is required. Install with: pip install requests", file=sys.stderr)
         return 2
 
     if not args.json and not args.no_banner:
@@ -2176,21 +1840,18 @@ def main() -> int:
                 ecosystem_hint=args.ecosystem,
                 progress=(not args.json),
             )
-            # Reconstruct package list from results
             all_packages.extend([r.package for r in results])
             all_results.extend(results)
         except ValueError as e:
             print(f"ERROR: {e}", file=sys.stderr)
             continue
 
-    # Clean up any temp dirs
     for d in tmp_cleanup:
         try:
             shutil.rmtree(d, ignore_errors=True)
         except Exception:
             pass
 
-    # Output
     report = generate_json_report(all_results, all_packages, source_url)
 
     if args.output:
