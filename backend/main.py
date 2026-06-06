@@ -111,9 +111,12 @@ def home():
             ".txt containing code",
         ],
     }
+
+
 @app.get("/ping")
 def ping():
     return {"ok": True}
+
 
 def severity_rank(value: Optional[str]) -> int:
     if not value:
@@ -130,10 +133,16 @@ def highest_severity(findings: List[Dict[str, Any]]) -> Optional[str]:
     )
 
 
+# FIX 1: safe_filename now allowlists to [A-Za-z0-9._-] only.
+# The old version only stripped null bytes — a filename like
+# "../../../../etc/passwd" would pass through and write outside the temp dir.
 def safe_filename(filename: Optional[str]) -> str:
     raw = Path(filename or "uploaded_file").name
-    raw = raw.replace("\x00", "")
-    return raw or "uploaded_file"
+    # Allowlist: keep only safe characters, collapse everything else to _
+    safe = re.sub(r"[^A-Za-z0-9._\-]", "_", raw)
+    # Truncate to a sane length and ensure we have something
+    safe = safe[:200].strip("._") or "uploaded_file"
+    return safe
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -347,45 +356,56 @@ def add_regex_findings(
 def ast_python_findings(content: str, filename: str) -> List[Dict[str, Any]]:
     findings: List[Dict[str, Any]] = []
 
+    # Only attempt AST parse on Python files — JS/TS will always fail and
+    # waste cycles. Gate on extension first, then fall back to content sniff.
+    ext = Path(filename.lower()).suffix
+    is_python_ext = ext in {".py", ".pyw"}
+    looks_python = is_python_ext or re.search(
+        r"\b(import |from .* import |def |class |subprocess\.|os\.system)\b",
+        content[:2000],
+    )
+    if not looks_python:
+        return findings
+
     try:
         tree = ast.parse(content)
     except SyntaxError:
         return findings
 
     dangerous_calls = {
-        "eval": ("PY-AST-001", "dynamic_eval", "CRITICAL", "eval() executes dynamic code."),
-        "exec": ("PY-AST-002", "dynamic_exec", "CRITICAL", "exec() executes dynamic code."),
-        "compile": ("PY-AST-003", "dynamic_compile", "HIGH", "compile() can prepare dynamic code for execution."),
-        "open": ("PY-AST-004", "file_access", "LOW", "File access detected."),
-        "input": ("PY-AST-005", "user_input", "LOW", "User input reading detected."),
-        "__import__": ("PY-AST-006", "dynamic_import", "HIGH", "Dynamic import detected."),
-        "getattr": ("PY-AST-007", "dynamic_attribute_access", "MEDIUM", "Dynamic attribute access detected."),
-        "setattr": ("PY-AST-008", "dynamic_attribute_setting", "MEDIUM", "Dynamic attribute setting detected."),
-        "delattr": ("PY-AST-009", "dynamic_attribute_deletion", "MEDIUM", "Dynamic attribute deletion detected."),
+        "eval":       ("PY-AST-001", "dynamic_eval",              "CRITICAL", "eval() executes dynamic code."),
+        "exec":       ("PY-AST-002", "dynamic_exec",              "CRITICAL", "exec() executes dynamic code."),
+        "compile":    ("PY-AST-003", "dynamic_compile",           "HIGH",     "compile() can prepare dynamic code for execution."),
+        "open":       ("PY-AST-004", "file_access",               "LOW",      "File access detected."),
+        "input":      ("PY-AST-005", "user_input",                "LOW",      "User input reading detected."),
+        "__import__": ("PY-AST-006", "dynamic_import",            "HIGH",     "Dynamic import detected."),
+        "getattr":    ("PY-AST-007", "dynamic_attribute_access",  "MEDIUM",   "Dynamic attribute access detected."),
+        "setattr":    ("PY-AST-008", "dynamic_attribute_setting", "MEDIUM",   "Dynamic attribute setting detected."),
+        "delattr":    ("PY-AST-009", "dynamic_attribute_deletion","MEDIUM",   "Dynamic attribute deletion detected."),
     }
 
     dangerous_attrs = {
-        ("os", "system"): ("PY-AST-010", "os_system_execution", "HIGH", "os.system() executes shell commands."),
-        ("os", "popen"): ("PY-AST-011", "os_popen_execution", "HIGH", "os.popen() executes shell commands."),
-        ("subprocess", "Popen"): ("PY-AST-012", "subprocess_popen", "HIGH", "subprocess.Popen() executes external processes."),
-        ("subprocess", "run"): ("PY-AST-013", "subprocess_run", "MEDIUM", "subprocess.run() executes external processes."),
-        ("subprocess", "check_output"): ("PY-AST-014", "subprocess_check_output", "HIGH", "subprocess.check_output() executes external processes."),
-        ("subprocess", "call"): ("PY-AST-015", "subprocess_call", "HIGH", "subprocess.call() executes external processes."),
-        ("socket", "socket"): ("PY-AST-016", "raw_socket", "HIGH", "Raw socket usage detected."),
-        ("requests", "post"): ("PY-AST-017", "http_post", "HIGH", "HTTP POST request detected."),
-        ("requests", "get"): ("PY-AST-018", "http_get", "MEDIUM", "HTTP GET request detected."),
-        ("urllib.request", "urlopen"): ("PY-AST-019", "urllib_urlopen", "MEDIUM", "urllib.request.urlopen() makes HTTP requests."),
-        ("urllib.request", "Request"): ("PY-AST-020", "urllib_request", "MEDIUM", "urllib.request.Request() creates HTTP requests."),
-        ("base64", "b64decode"): ("PY-AST-021", "base64_decode", "MEDIUM", "Base64 decoding detected."),
-        ("binascii", "unhexlify"): ("PY-AST-022", "binascii_unhexlify", "MEDIUM", "Hex decoding detected."),
-        ("marshal", "loads"): ("PY-AST-023", "marshal_loads", "HIGH", "marshal.loads() can deserialize Python bytecode."),
-        ("pickle", "loads"): ("PY-AST-024", "pickle_loads", "HIGH", "pickle.loads() can deserialize arbitrary objects."),
-        ("zlib", "decompress"): ("PY-AST-025", "zlib_decompress", "MEDIUM", "Data decompression detected."),
-        ("gzip", "decompress"): ("PY-AST-026", "gzip_decompress", "MEDIUM", "Gzip decompression detected."),
-        ("importlib.util", "spec_from_loader"): ("PY-AST-027", "importlib_spec_from_loader", "HIGH", "Dynamic module loading detected."),
-        ("sys", "meta_path"): ("PY-AST-028", "sys_meta_path_modification", "HIGH", "Import hook injection detected."),
-        ("ctypes", "CDLL"): ("PY-AST-029", "ctypes_cdll", "HIGH", "Dynamic library loading detected."),
-        ("ctypes", "windll"): ("PY-AST-030", "ctypes_windll", "HIGH", "Windows DLL loading detected."),
+        ("os",              "system"):          ("PY-AST-010", "os_system_execution",       "HIGH",     "os.system() executes shell commands."),
+        ("os",              "popen"):           ("PY-AST-011", "os_popen_execution",        "HIGH",     "os.popen() executes shell commands."),
+        ("subprocess",      "Popen"):           ("PY-AST-012", "subprocess_popen",          "HIGH",     "subprocess.Popen() executes external processes."),
+        ("subprocess",      "run"):             ("PY-AST-013", "subprocess_run",            "MEDIUM",   "subprocess.run() executes external processes."),
+        ("subprocess",      "check_output"):    ("PY-AST-014", "subprocess_check_output",   "HIGH",     "subprocess.check_output() executes external processes."),
+        ("subprocess",      "call"):            ("PY-AST-015", "subprocess_call",           "HIGH",     "subprocess.call() executes external processes."),
+        ("socket",          "socket"):          ("PY-AST-016", "raw_socket",                "HIGH",     "Raw socket usage detected."),
+        ("requests",        "post"):            ("PY-AST-017", "http_post",                 "HIGH",     "HTTP POST request detected."),
+        ("requests",        "get"):             ("PY-AST-018", "http_get",                  "MEDIUM",   "HTTP GET request detected."),
+        ("urllib.request",  "urlopen"):         ("PY-AST-019", "urllib_urlopen",            "MEDIUM",   "urllib.request.urlopen() makes HTTP requests."),
+        ("urllib.request",  "Request"):         ("PY-AST-020", "urllib_request",            "MEDIUM",   "urllib.request.Request() creates HTTP requests."),
+        ("base64",          "b64decode"):       ("PY-AST-021", "base64_decode",             "MEDIUM",   "Base64 decoding detected."),
+        ("binascii",        "unhexlify"):       ("PY-AST-022", "binascii_unhexlify",        "MEDIUM",   "Hex decoding detected."),
+        ("marshal",         "loads"):           ("PY-AST-023", "marshal_loads",             "HIGH",     "marshal.loads() can deserialize Python bytecode."),
+        ("pickle",          "loads"):           ("PY-AST-024", "pickle_loads",              "HIGH",     "pickle.loads() can deserialize arbitrary objects."),
+        ("zlib",            "decompress"):      ("PY-AST-025", "zlib_decompress",           "MEDIUM",   "Data decompression detected."),
+        ("gzip",            "decompress"):      ("PY-AST-026", "gzip_decompress",           "MEDIUM",   "Gzip decompression detected."),
+        ("importlib.util",  "spec_from_loader"):("PY-AST-027", "importlib_spec_from_loader","HIGH",     "Dynamic module loading detected."),
+        ("sys",             "meta_path"):       ("PY-AST-028", "sys_meta_path_modification","HIGH",     "Import hook injection detected."),
+        ("ctypes",          "CDLL"):            ("PY-AST-029", "ctypes_cdll",               "HIGH",     "Dynamic library loading detected."),
+        ("ctypes",          "windll"):          ("PY-AST-030", "ctypes_windll",             "HIGH",     "Windows DLL loading detected."),
     }
 
     for node in ast.walk(tree):
@@ -395,12 +415,9 @@ def ast_python_findings(content: str, filename: str) -> List[Dict[str, Any]]:
                 if name in dangerous_calls:
                     rule_id, rule_name, severity, desc = dangerous_calls[name]
                     findings.append({
-                        "rule_id": rule_id,
-                        "rule_name": rule_name,
-                        "severity": severity,
-                        "category": "source_code_ast",
-                        "description": desc,
-                        "evidence": f"{name}(...)",
+                        "rule_id": rule_id, "rule_name": rule_name,
+                        "severity": severity, "category": "source_code_ast",
+                        "description": desc, "evidence": f"{name}(...)",
                         "line_number": getattr(node, "lineno", None),
                         "file_path": filename,
                     })
@@ -408,19 +425,14 @@ def ast_python_findings(content: str, filename: str) -> List[Dict[str, Any]]:
             if isinstance(node.func, ast.Attribute):
                 attr = node.func.attr
                 owner = None
-
                 if isinstance(node.func.value, ast.Name):
                     owner = node.func.value.id
-
                 if owner and (owner, attr) in dangerous_attrs:
                     rule_id, rule_name, severity, desc = dangerous_attrs[(owner, attr)]
                     findings.append({
-                        "rule_id": rule_id,
-                        "rule_name": rule_name,
-                        "severity": severity,
-                        "category": "source_code_ast",
-                        "description": desc,
-                        "evidence": f"{owner}.{attr}(...)",
+                        "rule_id": rule_id, "rule_name": rule_name,
+                        "severity": severity, "category": "source_code_ast",
+                        "description": desc, "evidence": f"{owner}.{attr}(...)",
                         "line_number": getattr(node, "lineno", None),
                         "file_path": filename,
                     })
@@ -537,6 +549,7 @@ def source_scan_rules() -> List[Dict[str, Any]]:
         },
     ]
 
+
 def run_laocoon_source_rules(content: str, filename: str) -> List[Dict[str, Any]]:
     findings: List[Dict[str, Any]] = []
 
@@ -584,28 +597,36 @@ def deduplicate_findings(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]
 
     return out
 
+
 def scan_source_file(path: str, filename: str, data: bytes) -> dict:
     content = decode_text(data)
 
-    findings = []
+    findings: List[Dict[str, Any]] = []
+
+    # Layer 1: Laocoon's 40+ compiled regex rules
     findings += run_laocoon_source_rules(content, filename)
+
+    # FIX 3: source_scan_rules() was defined but add_regex_findings() was never
+    # called, silently dropping all 15 rules (SRC-CRED-*, SRC-WALLET-*, etc.)
+    # from every source file scan. Wired back in here.
+    add_regex_findings(findings, content, filename, source_scan_rules())
+
+    # Layer 3: Python AST analysis (gated to Python-like files inside the fn)
     findings += ast_python_findings(content, filename)
 
     findings = deduplicate_findings(findings)
     base_sev = highest_severity(findings) or "NONE"
-    
+
     critical_signals = 0
-    
     for f in findings:
         sev = str(f.get("severity", "")).upper()
-    
         if sev == "CRITICAL":
             critical_signals += 3
         elif sev == "HIGH":
             critical_signals += 2
         elif sev == "MEDIUM":
             critical_signals += 1
-    
+
     if critical_signals >= 6:
         final_sev = "CRITICAL"
     elif critical_signals >= 3:
@@ -614,16 +635,17 @@ def scan_source_file(path: str, filename: str, data: bytes) -> dict:
         final_sev = "MEDIUM"
     else:
         final_sev = base_sev
-        
+
     return {
-            "name": filename,
-            "version": "source",
-            "ecosystem": "source_code",
-            "is_malicious": len(findings) > 0,
-            "finding_count": len(findings),
-            "matches": findings,
-            "highest_severity": final_sev,
-        }
+        "name": filename,
+        "version": "source",
+        "ecosystem": "source_code",
+        "is_malicious": len(findings) > 0,
+        "finding_count": len(findings),
+        "matches": findings,
+        "highest_severity": final_sev,
+    }
+
 
 @app.post("/scan")
 @limiter.limit("5/minute")
@@ -709,6 +731,7 @@ async def scan(request: Request, file: UploadFile = File(...)):
 
                     yield sse({"type": "done"})
                     return
+
                 if kind == "manifest":
                     yield sse({
                         "type": "status",
@@ -758,17 +781,20 @@ async def scan(request: Request, file: UploadFile = File(...)):
 
                     yield sse({"type": "done"})
                     return
-                    
+
                 yield sse({
                     "type": "error",
                     "message": "Unsupported or unrecognized file type."
                 })
                 return
-            
+
             except Exception as e:
                 import traceback
                 log.error(f"Scan failed for {filename}: {e}")
-                print(traceback.format_exc())  # shows full error in Render logs
+                # FIX 2: was print(traceback.format_exc()) — that dumps full
+                # stack traces including file paths and variable values to
+                # stdout, which is semi-public on Render. Use log.error instead.
+                log.error(traceback.format_exc())
 
                 yield sse({
                     "type": "error",
@@ -780,6 +806,5 @@ async def scan(request: Request, file: UploadFile = File(...)):
                     shutil.rmtree(tmp_dir, ignore_errors=False)
                 except OSError as e:
                     log.warning(f"Failed to clean up temp directory {tmp_dir}: {e}")
-                    # Continue anyway - temp files will be cleaned up by OS eventually
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
