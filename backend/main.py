@@ -11,6 +11,7 @@ import asyncio
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+
 log = logging.getLogger("LaocoonAPI")
 log.addHandler(logging.NullHandler())
 
@@ -97,20 +98,9 @@ def sse(data: Dict[str, Any]) -> str:
 
 @app.get("/")
 def home():
-    return {
-        "status": "lacooon backend online",
-        "version": "2.0.0",
-        "supports": [
-            "requirements.txt",
-            "package.json",
-            "package-lock.json",
-            "pyproject.toml",
-            ".py",
-            ".js",
-            ".ts",
-            ".txt containing code",
-        ],
-    }
+    from fastapi.responses import FileResponse
+    return FileResponse("../index.html")
+
 
 
 @app.get("/ping")
