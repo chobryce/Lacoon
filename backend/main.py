@@ -103,6 +103,12 @@ def home():
     from fastapi.responses import FileResponse
     return FileResponse("../index.html")
 
+@app.get("/favicon.png")
+def get_favicon():
+    from fastapi.responses import FileResponse
+    # Steps back one folder from backend/ to find the file in your root folder
+    return FileResponse("../favicon.png")
+
 
 
 @app.get("/ping")
