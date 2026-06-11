@@ -53,12 +53,14 @@ SCAN_SEMAPHORE = asyncio.Semaphore(2)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://chobryce.github.io",
-        "https://chobryce.github.io/Laocoon",
+        "https://laocoon.net",
+        "https://laocoon.net",
+        "https://github.io",
+        "https://github.io/Laocoon",
     ],
-    allow_credentials=False,
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
